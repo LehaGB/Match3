@@ -78,6 +78,14 @@ namespace Match3.Board
         {
             _swipeListener.OnSwipe(fromX, fromY, toX, toY);
         }
+
+
+        public void RefreshAll(BoardModel model)
+        {
+            for (int x = 0; x < model.Width; x++)
+                for (int y = 0; y < model.Height; y++)
+                    RefreshCell(model.Cells[x, y]);
+        }
     }
 }
 

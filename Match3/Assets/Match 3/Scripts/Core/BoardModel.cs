@@ -44,18 +44,24 @@ namespace Match3.Core
 
         private bool WouldCreateMatch(int x, int y, ElementType type)
         {
-            if (x >= 2 && Cells[x - 1, y]?.Type == type && Cells[x - 2, y]?.Type == type) return true;
+            if (x >= 2 &&
+                Cells[x - 1, y]?.Type == type &&
+                Cells[x - 2, y]?.Type == type)
+                return true;
 
-            if (y >= 2 && Cells[x, y - 1]?.Type == type && Cells[x, y - 2]?.Type == type) return true;
+            if (y >= 2 &&
+                Cells[x, y - 1]?.Type == type &&
+                Cells[x, y - 2]?.Type == type)
+                return true;
 
             return false;
         }
 
         private ElementType GetRandomType()
         {
-
+            // None не должен выпадать при генерации — начинаем с 1.
             var values = Enum.GetValues(typeof(ElementType));
-            return (ElementType)values.GetValue(_random.Next(values.Length));
+            return (ElementType)values.GetValue(1 + _random.Next(values.Length - 1));
         }
 
         public void Swap(int x1, int y1, int x2, int y2)
@@ -67,6 +73,52 @@ namespace Match3.Core
             a.Type = b.Type;
             b.Type = tmp;
         }
+
+
+        public void ClearMatches(List<BoardCell> matches)
+        {
+            for (int i = 0; i < matches.Count; i++)
+            {
+                matches[i].Type = ElementType.None;
+            }
+        }
+
+        public void ApplyGravity()
+        {
+            for(int x = 0; x < Width; x++)
+            {
+                int writeY = 0;
+
+                for (int y = 0; y < Height; y++)
+                {
+                    if (Cells[x, y].Type != ElementType.None)
+                    {
+                        if(writeY != y)
+                        {
+                            Cells[x, writeY].Type = Cells[x, y].Type;
+                            Cells[x, y].Type = ElementType.None;
+                        }
+                        writeY++;
+                    }
+                }
+            }
+        }
+
+
+        public void Refill()
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    if (Cells[x, y].Type == ElementType.None)
+                        Cells[x, y].Type = GetRandomType();
+                }
+            }
+        }
+
+        // Публичная обёртка, чтобы контроллер мог дозаполнять.
+        //public ElementType GetRandomTypePublic() => GetRandomType();
     }
 }
 

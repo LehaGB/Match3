@@ -19,6 +19,8 @@ namespace Match3.Board
 
         public Sprite GetSprite(ElementType type)
         {
+            if (type == ElementType.None) return null;
+
             for (int i = 0; i < _sprites.Length; i++)
             {
                 if (_sprites[i].Type == type)

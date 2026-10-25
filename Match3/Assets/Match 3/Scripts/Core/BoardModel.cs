@@ -75,50 +75,50 @@ namespace Match3.Core
         }
 
 
-        public void ClearMatches(List<BoardCell> matches)
+        public void ResolveStep(List<BoardCell> matches, List<BoardCell> changed)
         {
+            changed.Clear();
+
+            // 1. Очистка совпадений
             for (int i = 0; i < matches.Count; i++)
             {
                 matches[i].Type = ElementType.None;
+                changed.Add(matches[i]);
             }
-        }
 
-        public void ApplyGravity()
-        {
-            for(int x = 0; x < Width; x++)
+            // 2. Гравитация: сдвигаем вниз, собираем изменённые
+            for (int x = 0; x < Width; x++)
             {
                 int writeY = 0;
-
                 for (int y = 0; y < Height; y++)
                 {
                     if (Cells[x, y].Type != ElementType.None)
                     {
-                        if(writeY != y)
+                        if (writeY != y)
                         {
                             Cells[x, writeY].Type = Cells[x, y].Type;
                             Cells[x, y].Type = ElementType.None;
+                            changed.Add(Cells[x, writeY]);
+                            changed.Add(Cells[x, y]);
                         }
                         writeY++;
                     }
                 }
             }
-        }
 
-
-        public void Refill()
-        {
+            // 3. Рефилл: заполняем пустые
             for (int x = 0; x < Width; x++)
             {
                 for (int y = 0; y < Height; y++)
                 {
                     if (Cells[x, y].Type == ElementType.None)
+                    {
                         Cells[x, y].Type = GetRandomType();
+                        changed.Add(Cells[x, y]);
+                    }
                 }
             }
         }
-
-        // Публичная обёртка, чтобы контроллер мог дозаполнять.
-        //public ElementType GetRandomTypePublic() => GetRandomType();
     }
 }
 

@@ -1,5 +1,6 @@
 using Match3.Core;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 
@@ -46,6 +47,13 @@ namespace Match3.Board
             view.SetSprite(_spriteProvider.GetSprite(cell.Type));
         }
 
+
+        public void RefreshCells(List<BoardCell> cells)
+        {
+            for (int i = 0; i < cells.Count; i++)
+                RefreshCell(cells[i]);
+        }
+
         private Vector3 CellToWorld(int x, int y)
         {
             return new Vector3(_origin.x + x * _cellSize, _origin.y + y * _cellSize, 0f);
@@ -80,12 +88,12 @@ namespace Match3.Board
         }
 
 
-        public void RefreshAll(BoardModel model)
-        {
-            for (int x = 0; x < model.Width; x++)
-                for (int y = 0; y < model.Height; y++)
-                    RefreshCell(model.Cells[x, y]);
-        }
+        //public void RefreshAll(BoardModel model)
+        //{
+        //    for (int x = 0; x < model.Width; x++)
+        //        for (int y = 0; y < model.Height; y++)
+        //            RefreshCell(model.Cells[x, y]);
+        //}
     }
 }
 

@@ -13,6 +13,7 @@ namespace Match3.Core
         private BoardModel _board;
 
         private readonly List<BoardCell> _matchBuffer = new List<BoardCell>(32);
+        private readonly List<BoardCell> _changedBuffer = new List<BoardCell>(64);
 
         private void Start()
         {
@@ -63,18 +64,13 @@ namespace Match3.Core
             // Пока есть совпадения — чистим, роняем, дозаполняем (каскады)
             while (true)
             {
-                _board.ClearMatches(_matchBuffer);
-                _boardView.RefreshAll(_board);   // временно: полное обновление визуала
-
-                _board.ApplyGravity();
-                _board.Refill();
-                _boardView.RefreshAll(_board);
+                _board.ResolveStep(_matchBuffer, _changedBuffer);
+                _boardView.RefreshCells(_changedBuffer);
 
                 MatchFinder.FindMatches(_board, _matchBuffer);
                 if (_matchBuffer.Count == 0)
                     break;
             }
-            Debug.Log($"Matches found: {_matchBuffer.Count}");
         }
     }
 }

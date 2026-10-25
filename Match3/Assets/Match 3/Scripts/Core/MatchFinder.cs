@@ -13,11 +13,6 @@ namespace Match3.Core
         {
             results.Clear();
 
-            // ВРЕМЕННО: лог первых 5 совпадений
-            int debugCount = 0;
-
-
-
             for (int y = 0; y < board.Height; y++)
             {
                 int runStart = 0;

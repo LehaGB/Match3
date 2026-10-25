@@ -267,6 +267,7 @@ GameObject:
   - component: {fileID: 594554743}
   - component: {fileID: 594554742}
   - component: {fileID: 594554744}
+  - component: {fileID: 594554745}
   m_Layer: 0
   m_Name: Board
   m_TagString: Untagged
@@ -321,6 +322,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Match3.Board.BoardSwipeInput
   _boardView: {fileID: 594554742}
   _minSwipeFraction: 0.1287
+--- !u!114 &594554745
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 594554741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d2104830b1ae44428b69a4022ab753e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Match3.Core.BoardController
+  _width: 8
+  _height: 8
+  _boardView: {fileID: 594554742}
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -465,7 +481,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1552201813}
-  - component: {fileID: 1552201812}
   m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
@@ -473,21 +488,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1552201812
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1552201811}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6826abf821a5c004daa5a8ea67809b65, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Match3.Core.BoardModelTester
-  _width: 8
-  _height: 8
-  _boardView: {fileID: 594554742}
 --- !u!4 &1552201813
 Transform:
   m_ObjectHideFlags: 0

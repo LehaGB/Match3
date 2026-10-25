@@ -57,6 +57,16 @@ namespace Match3.Core
             var values = Enum.GetValues(typeof(ElementType));
             return (ElementType)values.GetValue(_random.Next(values.Length));
         }
+
+        public void Swap(int x1, int y1, int x2, int y2)
+        {
+            var a = Cells[x1, y1];
+            var b = Cells[x2, y2];
+
+            ElementType tmp = a.Type;
+            a.Type = b.Type;
+            b.Type = tmp;
+        }
     }
 }
 

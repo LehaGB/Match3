@@ -266,6 +266,7 @@ GameObject:
   m_Component:
   - component: {fileID: 594554743}
   - component: {fileID: 594554742}
+  - component: {fileID: 594554744}
   m_Layer: 0
   m_Name: Board
   m_TagString: Untagged
@@ -306,6 +307,20 @@ Transform:
   - {fileID: 812463550}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &594554744
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 594554741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31a1ee79fbc293c4d9f9d7770851e297, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Match3.Board.BoardSwipeInput
+  _boardView: {fileID: 594554742}
+  _minSwipeFraction: 0.1287
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0

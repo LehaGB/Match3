@@ -5,6 +5,13 @@ using System;
 
 namespace Match3.Core
 {
+
+    /// <summary>
+    /// Модель всего поля: двумерный массив клеток, 
+    /// генерация без стартовых совпадений (GenerateBoard, WouldCreateMatch), 
+    /// обмен (Swap), разрешение хода (ResolveStep — очистка, гравитация, рефилл), 
+    /// случайный тип (GetRandomType).
+    /// </summary>
     public class BoardModel
     {
         public int Width { get; }

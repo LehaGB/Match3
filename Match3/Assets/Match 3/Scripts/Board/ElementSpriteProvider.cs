@@ -5,6 +5,11 @@ using UnityEngine;
 
 namespace Match3.Board
 {
+
+    /// <summary>
+    /// Реализация IElementSpriteProvider на ScriptableObject: 
+    /// массив пар ElementType → Sprite. GetSprite(None) возвращает null.
+    /// </summary>
     [CreateAssetMenu(menuName = "Match3/Element Sprite Provider", fileName = "ElementSpriteProvider")]
     public class ElementSpriteProvider : ScriptableObject, IElementSpriteProvider
     {

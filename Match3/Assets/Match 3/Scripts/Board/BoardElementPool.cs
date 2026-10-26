@@ -5,6 +5,11 @@ using UnityEngine;
 
 namespace Match3.Board
 {
+
+    /// <summary>
+    /// Пул визуальных элементов (Stack + Prewarm). 
+    /// Get/Release вместо Instantiate/Destroy в игровом цикле — главный инструмент против фризов на Android.
+    /// </summary>
     public class BoardElementPool
     {
         private readonly BoardElementView _prefab;

@@ -6,6 +6,12 @@ using UnityEngine;
 
 namespace Match3.Board
 {
+    /// <summary>
+    /// ѕредставление пол€: Initialize создаЄт визуал из модели, 
+    /// RefreshCell/RefreshCells обновл€ют спрайты, 
+    /// ScreenToCell/IsInside перевод€т экран в индексы, 
+    /// NotifySwipe/SetSwipeListener Ч мост к вводу.  эширует Camera в Awake.
+    /// </summary>
     public class BoardView : MonoBehaviour
     {
         [Header("References")]
@@ -86,14 +92,6 @@ namespace Match3.Board
         {
             _swipeListener.OnSwipe(fromX, fromY, toX, toY);
         }
-
-
-        //public void RefreshAll(BoardModel model)
-        //{
-        //    for (int x = 0; x < model.Width; x++)
-        //        for (int y = 0; y < model.Height; y++)
-        //            RefreshCell(model.Cells[x, y]);
-        //}
     }
 }
 

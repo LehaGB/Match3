@@ -5,6 +5,12 @@ using UnityEngine.InputSystem;
 
 namespace Match3.Board
 {
+
+    /// <summary>
+    /// Распознавание свайпа: ручное отслеживание isPressed (обход бага Unity 6 с wasPressedThisFrame), 
+    /// порог относительно экрана, определение направления, вызов NotifySwipe. 
+    /// В редакторе принудительно включает Mouse через EnableDevice.
+    /// </summary>
     public class BoardSwipeInput : MonoBehaviour
     {
         [SerializeField] private BoardView _boardView;

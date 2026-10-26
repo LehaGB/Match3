@@ -5,10 +5,16 @@ using UnityEngine;
 
 namespace Match3.Core
 {
+    /// <summary>
+    /// Статический класс поиска совпадений 3+ в ряд по горизонтали и вертикали. 
+    /// Возвращает список клеток в results, игнорирует None.
+    /// </summary>
     public static class MatchFinder
     {
-        // Возвращает список клеток, входящих в совпадения 3+ в ряд.
-        // Список переиспользуется — не создавай новый на каждый вызов.
+        /// <summary>
+        /// </summary>
+        /// <param name="board"></param>
+        /// <param name="results"></param>
         public static void FindMatches(BoardModel board, List<BoardCell> results)
         {
             results.Clear();

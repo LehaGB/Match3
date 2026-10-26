@@ -2,6 +2,11 @@ using UnityEngine;
 
 namespace Match3.Board
 {
+    /// <summary>
+    /// Компонент одного визуального элемента: 
+    /// SpriteRenderer (кэшируется), SetSprite, SetPosition. 
+    /// Не знает про ElementType — просто показывает спрайт.
+    /// </summary>
     [RequireComponent(typeof(SpriteRenderer))]
     public class BoardElementView : MonoBehaviour
     {

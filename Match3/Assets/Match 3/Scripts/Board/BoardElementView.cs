@@ -32,6 +32,14 @@ namespace Match3.Board
         {
             transform.position = position;
         }
+
+
+        // сброс масштаба (после анимации исчезновения).
+        public void ResetScale()
+        {
+            transform.localScale = Vector3.one;
+        }
+
     }
 }
 

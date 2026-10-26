@@ -1,6 +1,7 @@
 using Match3.Board;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
 
 
 namespace Match3.Board
@@ -20,25 +21,28 @@ namespace Match3.Board
         private bool _tracking;
         private bool _wasPressedLastFrame;
 
+
+        private void Awake()
+        {
+            // Включаем Enhanced Touch для надёжной работы тача на Android
+            EnhancedTouchSupport.Enable();
+        }
+
+
         private void Update()
         {
-            InputSystem.EnableDevice(Mouse.current);
-#if UNITY_EDITOR
-            if (Mouse.current != null && !Mouse.current.enabled)
-                InputSystem.EnableDevice(Mouse.current);
-#endif
-            var pointer = UnityEngine.InputSystem.Pointer.current;
+            var pointer = Pointer.current;
             if (pointer == null) return;
 
             bool isPressedNow = pointer.press.isPressed;
 
-            // Момент нажатия: сейчас нажато, в прошлом кадре — нет
+            // Момент нажатия
             if (isPressedNow && !_wasPressedLastFrame)
             {
                 _startScreenPos = pointer.position.ReadValue();
                 _tracking = true;
             }
-            // Момент отпускания: сейчас не нажато, в прошлом кадре — нажато
+            // Момент отпускания (проверяем по нашему флагу, а не по wasReleasedThisFrame)
             else if (!isPressedNow && _wasPressedLastFrame && _tracking)
             {
                 _tracking = false;
@@ -46,20 +50,24 @@ namespace Match3.Board
                 Vector2 delta = endScreenPos - _startScreenPos;
 
                 float minDistance = Mathf.Min(Screen.width, Screen.height) * _minSwipeFraction;
-                if (delta.magnitude >= minDistance)
+                if (delta.magnitude < minDistance)
                 {
-                    bool horizontal = Mathf.Abs(delta.x) > Mathf.Abs(delta.y);
-                    Vector2Int dir = horizontal
-                        ? new Vector2Int(delta.x > 0 ? 1 : -1, 0)
-                        : new Vector2Int(0, delta.y > 0 ? 1 : -1);
+                    // Слишком короткое движение — это тап, а не свайп
+                    _wasPressedLastFrame = isPressedNow;
+                    return;
+                }
 
-                    if (_boardView.ScreenToCell(_startScreenPos, out int fromX, out int fromY))
-                    {
-                        int toX = fromX + dir.x;
-                        int toY = fromY + dir.y;
-                        if (_boardView.IsInside(toX, toY))
-                            _boardView.NotifySwipe(fromX, fromY, toX, toY);
-                    }
+                bool horizontal = Mathf.Abs(delta.x) > Mathf.Abs(delta.y);
+                Vector2Int dir = horizontal
+                    ? new Vector2Int(delta.x > 0 ? 1 : -1, 0)
+                    : new Vector2Int(0, delta.y > 0 ? 1 : -1);
+
+                if (_boardView.ScreenToCell(_startScreenPos, out int fromX, out int fromY))
+                {
+                    int toX = fromX + dir.x;
+                    int toY = fromY + dir.y;
+                    if (_boardView.IsInside(toX, toY))
+                        _boardView.NotifySwipe(fromX, fromY, toX, toY);
                 }
             }
 

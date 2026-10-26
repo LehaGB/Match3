@@ -8,10 +8,11 @@ namespace Match3.Core
     {
         None = 0,
         Apple,
-        StrawBerry,
         Lime,
         Banana,
-        Pineapple
+        Pineapple,
+        AppleGreen,
+        Cherry
     }
 }
 

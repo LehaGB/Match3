@@ -17,11 +17,11 @@ MonoBehaviour:
     Sprite: {fileID: 0}
   - Type: 1
     Sprite: {fileID: 6983889603800330923, guid: e50e787d023f35144a10372d5ce53823, type: 3}
-  - Type: 2
-    Sprite: {fileID: 3327937218150094567, guid: cb4e1023276192948b265f84e22bb4b2, type: 3}
   - Type: 3
     Sprite: {fileID: 3259746378753352386, guid: 9aa36df1c02a3ca48a9a0e9a576ba8e9, type: 3}
   - Type: 4
     Sprite: {fileID: -6259816872865937726, guid: 0da4651cf4c2a5b47a987b72c18bceaf, type: 3}
   - Type: 5
     Sprite: {fileID: -1121958965176000093, guid: 13931baa5388d994794daddc5d63b592, type: 3}
+  - Type: 6
+    Sprite: {fileID: 1346425706445486848, guid: 7295e96a997d5724ca61cb69c41edf05, type: 3}

@@ -505,6 +505,8 @@ MonoBehaviour:
   _spriteProvider: {fileID: 11400000, guid: 3a9e9cb3f1bd5684c83cfecf4eeb83a4, type: 2}
   _cellSize: 1
   _origin: {x: 0, y: 0}
+  _swapDuration: 0.15
+  _clearDuration: 0.1
 --- !u!4 &594554743
 Transform:
   m_ObjectHideFlags: 0
@@ -825,7 +827,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 1
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -903,10 +905,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1970382290}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1792, y: -44.437}
-  m_SizeDelta: {x: 233.041, y: 72.874}
+  m_AnchorMin: {x: 1, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -128, y: -44.437}
+  m_SizeDelta: {x: 233.04102, y: 72.874}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1532904404
 MonoBehaviour:

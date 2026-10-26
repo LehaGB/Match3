@@ -1,5 +1,6 @@
 using DG.Tweening;
 using Match3.Board;
+using Match3.UI;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,16 +19,22 @@ namespace Match3.Core
         [SerializeField] private int _height = 8;
         [SerializeField] private int _startingMoves = 20;
         [SerializeField] private BoardView _boardView;
+        [SerializeField] private AudioManager _audio;
+        [SerializeField] private CameraShake _cameraShake;
+
+        // --- НОВЫЕ ПОЛЯ ДЛЯ GAME FEEL ---
+        [SerializeField] private FloatingScorePool _floatingScorePool;
 
         public GameState State { get; private set; }
 
         private BoardModel _board;
         private readonly List<BoardCell> _matchBuffer = new List<BoardCell>(32);
         private readonly List<BoardCell> _changedBuffer = new List<BoardCell>(64);
+
         private readonly List<CellMove> _moveBuffer = new List<CellMove>(64);
         private readonly List<BoardCell> _newCellsBuffer = new List<BoardCell>(16);
 
-        private bool _isBusy; // Блокировка ввода во время анимации
+        private bool _isBusy;
 
         private void Awake()
         {
@@ -44,37 +51,31 @@ namespace Match3.Core
 
         public void OnSwipe(int fromX, int fromY, int toX, int toY)
         {
-            // Если игра окончена или идёт анимация — игнорируем
             if (State.IsGameOver || _isBusy) return;
             StartCoroutine(SwipeRoutine(fromX, fromY, toX, toY));
         }
 
         private IEnumerator SwipeRoutine(int fromX, int fromY, int toX, int toY)
         {
+            _audio.PlaySwipe();
             _isBusy = true;
 
-            // 1. Анимируем обмен (модель пока НЕ трогаем)
             var swapTween = _boardView.AnimateSwap(fromX, fromY, toX, toY);
             yield return swapTween.WaitForCompletion();
 
-            // 2. Меняем модель и меняем ссылки в массиве _views
             _board.Swap(fromX, fromY, toX, toY);
             _boardView.SwapViews(fromX, fromY, toX, toY);
 
-            // 3. Проверяем совпадения
             MatchFinder.FindMatches(_board, _matchBuffer);
 
             if (_matchBuffer.Count == 0)
             {
-                // Нет совпадений — возвращаем модель и ссылки обратно
                 _board.Swap(fromX, fromY, toX, toY);
-                _boardView.SwapViews(fromX, fromY, toX, toY); // вернуть ссылки на место
+                _boardView.SwapViews(fromX, fromY, toX, toY);
 
-                // Анимируем визуальный возврат
                 var revertTween = _boardView.AnimateSwap(toX, toY, fromX, fromY);
                 yield return revertTween.WaitForCompletion();
 
-                // Синхронизируем позиции и спрайты (на всякий случай)
                 _boardView.ResetPosition(fromX, fromY);
                 _boardView.ResetPosition(toX, toY);
                 _boardView.RefreshCell(_board.Cells[fromX, fromY]);
@@ -84,8 +85,9 @@ namespace Match3.Core
                 yield break;
             }
 
-            // 4. Успех: очки и каскады
-            State.AddScore(ScoreRules.CalculateForMatch(_matchBuffer.Count));
+            // Первое совпадение
+            ShowScoreAndAddPoints();
+
             yield return StartCoroutine(ResolveMatchesRoutine());
             State.ConsumeMove();
 
@@ -100,15 +102,19 @@ namespace Match3.Core
                 var clearTween = _boardView.AnimateClear(_matchBuffer);
                 yield return clearTween.WaitForCompletion();
 
-                // Обновляем модель
-                _board.ClearMatches(_matchBuffer);
+                _audio.PlayMatch();
 
-                // 2. Падение существующих
+                // 2. Очистка и падение
+                _board.ClearMatches(_matchBuffer);
                 _board.ApplyGravityAndCollectMoves(_moveBuffer);
+
                 if (_moveBuffer.Count > 0)
                 {
                     var fallTween = _boardView.AnimateFall(_moveBuffer);
                     yield return fallTween.WaitForCompletion();
+
+                    // ВОТ ЗДЕСЬ звук падения. Элементы только что приземлились.
+                    _audio.PlayFall();
                 }
 
                 // 3. Появление новых
@@ -124,7 +130,26 @@ namespace Match3.Core
                 if (_matchBuffer.Count == 0)
                     break;
 
-                State.AddScore(ScoreRules.CalculateForMatch(_matchBuffer.Count));
+                // Если есть каскад - показываем очки и начисляем
+                ShowScoreAndAddPoints();
+
+                if (_cameraShake != null) _cameraShake.Shake();
+            }
+        }
+
+        // --- ВСПОМОГАТЕЛЬНЫЙ МЕТОД ДЛЯ ОЧКОВ И ЦИФР ---
+        private void ShowScoreAndAddPoints()
+        {
+            if (_matchBuffer.Count == 0) return;
+
+            int points = ScoreRules.CalculateForMatch(_matchBuffer.Count);
+            State.AddScore(points);
+
+            // Защита от NullReference, если пул не назначен
+            if (_floatingScorePool != null)
+            {
+                Vector3 pos = _boardView.GetCellWorldPosition(_matchBuffer[0]);
+                _floatingScorePool.Play(pos, points);
             }
         }
     }

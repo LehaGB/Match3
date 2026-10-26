@@ -10,9 +10,9 @@ namespace Match3.Core
         Apple,
         Lime,
         Banana,
-        Pineapple,
-        AppleGreen,
-        Cherry
+        Cherry,
+        Blueberries,
+        Grapes
     }
 }
 

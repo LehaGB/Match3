@@ -339,6 +339,12 @@ namespace Match3.Board
             }
             return seq;
         }
+
+
+        public Vector3 GetCellWorldPosition(BoardCell cell)
+        {
+            return CellToWorld(cell.X, cell.Y);
+        }
     }
 }
 

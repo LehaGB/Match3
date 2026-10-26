@@ -1,4 +1,4 @@
-using UnityEngine;
+
 using System.Collections.Generic;
 using System;
 
@@ -124,6 +124,57 @@ namespace Match3.Core
                         changed.Add(Cells[x, y]);
                     }
                 }
+            }
+        }
+
+        // Возвращает список перемещений (для анимации падения).
+        // Очистка совпадений уже должна быть сделана до вызова (ClearMatches).
+        public void ApplyGravityAndCollectMoves(List<CellMove> moves)
+        {
+            moves.Clear();
+
+            for (int x = 0; x < Width; x++)
+            {
+                int writeY = 0;
+                for (int y = 0; y < Height; y++)
+                {
+                    if (Cells[x, y].Type != ElementType.None)
+                    {
+                        if (writeY != y)
+                        {
+                            Cells[x, writeY].Type = Cells[x, y].Type;
+                            Cells[x, y].Type = ElementType.None;
+
+                            moves.Add(new CellMove { X = x, FromY = y, ToY = writeY });
+                        }
+                        writeY++;
+                    }
+                }
+            }
+        }
+
+        public void RefillAndCollectNew(List<BoardCell> newCells)
+        {
+            newCells.Clear();
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    if (Cells[x, y].Type == ElementType.None)
+                    {
+                        Cells[x, y].Type = GetRandomType();
+                        newCells.Add(Cells[x, y]);
+                    }
+                }
+            }
+        }
+
+        // Очищает клетки, помечая их как пустые (None).
+        public void ClearMatches(List<BoardCell> matches)
+        {
+            for (int i = 0; i < matches.Count; i++)
+            {
+                matches[i].Type = ElementType.None;
             }
         }
     }

@@ -24,6 +24,8 @@ namespace Match3.Core
         private BoardModel _board;
         private readonly List<BoardCell> _matchBuffer = new List<BoardCell>(32);
         private readonly List<BoardCell> _changedBuffer = new List<BoardCell>(64);
+        private readonly List<CellMove> _moveBuffer = new List<CellMove>(64);
+        private readonly List<BoardCell> _newCellsBuffer = new List<BoardCell>(16);
 
         private bool _isBusy; // Блокировка ввода во время анимации
 
@@ -94,20 +96,30 @@ namespace Match3.Core
         {
             while (true)
             {
-                // 1. Анимация исчезновения
+                // 1. Исчезновение
                 var clearTween = _boardView.AnimateClear(_matchBuffer);
                 yield return clearTween.WaitForCompletion();
 
-                // 2. Мгновенно применяем гравитацию + рефилл в модели
-                _board.ResolveStep(_matchBuffer, _changedBuffer);
+                // Обновляем модель
+                _board.ClearMatches(_matchBuffer);
 
-                // ВАЖНО: сначала обновляем спрайты, потом сбрасываем масштаб!
-                // Иначе элементы появятся уменьшенными.
-                _boardView.RefreshCells(_changedBuffer);
-                for (int i = 0; i < _changedBuffer.Count; i++)
-                    _boardView.ResetScale(_changedBuffer[i]);
+                // 2. Падение существующих
+                _board.ApplyGravityAndCollectMoves(_moveBuffer);
+                if (_moveBuffer.Count > 0)
+                {
+                    var fallTween = _boardView.AnimateFall(_moveBuffer);
+                    yield return fallTween.WaitForCompletion();
+                }
 
-                // 3. Проверяем новые совпадения
+                // 3. Появление новых
+                _board.RefillAndCollectNew(_newCellsBuffer);
+                if (_newCellsBuffer.Count > 0)
+                {
+                    var spawnTween = _boardView.AnimateSpawn(_newCellsBuffer, _board);
+                    yield return spawnTween.WaitForCompletion();
+                }
+
+                // 4. Проверка на каскад
                 MatchFinder.FindMatches(_board, _matchBuffer);
                 if (_matchBuffer.Count == 0)
                     break;

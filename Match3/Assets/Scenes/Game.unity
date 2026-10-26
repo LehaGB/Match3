@@ -534,7 +534,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Match3.Board.BoardSwipeInput
   _boardView: {fileID: 594554742}
-  _minSwipeFraction: 0.1287
+  _minSwipeFraction: 0.06
 --- !u!114 &594554745
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -733,7 +733,7 @@ MonoBehaviour:
   _boardController: {fileID: 594554745}
   _scoreText: {fileID: 1442834897}
   _movesText: {fileID: 1532904404}
-  _gameOverPanel: {fileID: 0}
+  _gameOverPanel: {fileID: 60168298}
 --- !u!1 &1442834895
 GameObject:
   m_ObjectHideFlags: 0

@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 60168299}
   - component: {fileID: 60168301}
   - component: {fileID: 60168300}
+  - component: {fileID: 60168302}
   m_Layer: 5
   m_Name: GameOver
   m_TagString: Untagged
@@ -196,6 +197,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 60168298}
   m_CullTransparentMesh: 1
+--- !u!114 &60168302
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 60168298}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d35a20ef48988994a9858b49f33e68d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Match3.UI.RestartButtonUI
 --- !u!1 &236085825
 GameObject:
   m_ObjectHideFlags: 0
@@ -814,6 +827,7 @@ GameObject:
   - component: {fileID: 661491128}
   - component: {fileID: 661491130}
   - component: {fileID: 661491129}
+  - component: {fileID: 661491131}
   m_Layer: 5
   m_Name: WinPanel
   m_TagString: Untagged
@@ -880,6 +894,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 661491127}
   m_CullTransparentMesh: 1
+--- !u!114 &661491131
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 661491127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d35a20ef48988994a9858b49f33e68d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Match3.UI.RestartButtonUI
 --- !u!1 &812463549
 GameObject:
   m_ObjectHideFlags: 0
@@ -1088,7 +1114,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1237761522}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 661491131}
+        m_TargetAssemblyTypeName: Match3.UI.RestartButtonUI, Assembly-CSharp
+        m_MethodName: RestartLevel
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1237761522
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2128,7 +2166,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2093300027}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 60168302}
+        m_TargetAssemblyTypeName: Match3.UI.RestartButtonUI, Assembly-CSharp
+        m_MethodName: RestartLevel
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &2093300027
 MonoBehaviour:
   m_ObjectHideFlags: 0

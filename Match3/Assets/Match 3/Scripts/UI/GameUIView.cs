@@ -14,6 +14,7 @@ namespace Match3.UI
         [SerializeField] private TMP_Text _scoreText;
         [SerializeField] private TMP_Text _movesText;
         [SerializeField] private GameObject _gameOverPanel;
+        [SerializeField] private GameObject _winPanel;
 
 
         private void Start()
@@ -24,10 +25,18 @@ namespace Match3.UI
             state.ScoreChange += OnScoreChanged;
             state.MovesChange += OnMovesChanged;
             state.GameOver += OnGameOver;
+            state.GameWin += OnGameWin;
 
 
         }
 
+        private void OnGameWin()
+        {
+            if(_winPanel != null)
+            {
+                _winPanel.SetActive(true);
+            }
+        }
 
         private void OnDestroy()
         {
@@ -37,6 +46,7 @@ namespace Match3.UI
             state.ScoreChange -= OnScoreChanged;
             state.MovesChange -= OnMovesChanged;
             state.GameOver -= OnGameOver;
+            state.GameWin -= OnGameWin;
         }
 
 

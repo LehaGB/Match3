@@ -15,14 +15,10 @@ namespace Match3.Core
     /// </summary>
     public class BoardController : MonoBehaviour, ISwipeListener
     {
-        [SerializeField] private int _width = 8;
-        [SerializeField] private int _height = 8;
-        [SerializeField] private int _startingMoves = 20;
+        [SerializeField] private LevelData _levelData;
         [SerializeField] private BoardView _boardView;
         [SerializeField] private AudioManager _audio;
         [SerializeField] private CameraShake _cameraShake;
-
-        // --- НОВЫЕ ПОЛЯ ДЛЯ GAME FEEL ---
         [SerializeField] private FloatingScorePool _floatingScorePool;
 
         public GameState State { get; private set; }
@@ -39,12 +35,12 @@ namespace Match3.Core
         private void Awake()
         {
             State = new GameState();
-            State.Initialize(_startingMoves);
+            State.Initialize(_levelData.StartingsMoves, _levelData.TargetScore);
         }
 
         private void Start()
         {
-            _board = new BoardModel(_width, _height);
+            _board = new BoardModel(_levelData.Width, _levelData.Height);
             _boardView.Initialize(_board);
             _boardView.SetSwipeListener(this);
         }

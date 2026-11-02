@@ -43,17 +43,23 @@ namespace Match3.Board
 
         public void SetSpecialVisual(SpecialType special)
         {
-            if(special == SpecialType.None)
+            if (special == SpecialType.None)
             {
                 transform.localScale = Vector3.one;
+                transform.rotation = Quaternion.identity;
+                Renderer.color = Color.white;
             }
-            else if(special == SpecialType.Bomb)
+            else if (special == SpecialType.Bomb)
+            {
+                transform.localScale = Vector3.one * 1.1f;
+                transform.rotation = Quaternion.Euler(0, 0, 45f); // Ромбик
+                Renderer.color = Color.black; // Черный цвет
+            }
+            else if (special == SpecialType.Rainbow)
             {
                 transform.localScale = Vector3.one * 1.2f;
-            }
-            else if (special == SpecialType.RaiBow)
-            {
-                transform.localScale = Vector3.one * 1.3f;
+                transform.rotation = Quaternion.identity;
+                Renderer.color = new Color(1f, 0.5f, 0f); // Оранжевый
             }
         }
 

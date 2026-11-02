@@ -1,3 +1,4 @@
+using Match3.Core;
 using UnityEngine;
 
 namespace Match3.Board
@@ -38,6 +39,22 @@ namespace Match3.Board
         public void ResetScale()
         {
             transform.localScale = Vector3.one;
+        }
+
+        public void SetSpecialVisual(SpecialType special)
+        {
+            if(special == SpecialType.None)
+            {
+                transform.localScale = Vector3.one;
+            }
+            else if(special == SpecialType.Bomb)
+            {
+                transform.localScale = Vector3.one * 1.2f;
+            }
+            else if (special == SpecialType.RaiBow)
+            {
+                transform.localScale = Vector3.one * 1.3f;
+            }
         }
 
     }

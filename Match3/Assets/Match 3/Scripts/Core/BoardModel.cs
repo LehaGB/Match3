@@ -64,7 +64,7 @@ namespace Match3.Core
             return false;
         }
 
-        private ElementType GetRandomType()
+        public ElementType GetRandomType()
         {
             // None не должен выпадать при генерации — начинаем с 1.
             var values = Enum.GetValues(typeof(ElementType));
@@ -175,7 +175,15 @@ namespace Match3.Core
             for (int i = 0; i < matches.Count; i++)
             {
                 matches[i].Type = ElementType.None;
+                matches[i].Special = SpecialType.None;
             }
+        }
+
+        // Превращает клетку в бонус (бомбу или радугу)
+        public void UpgradeToSpecial(BoardCell cell, SpecialType special)
+        {
+            cell.Special = special;
+            // Мы не меняем Type, он остается того же цвета (для бомбы) или любого (для радуги)
         }
     }
 }

@@ -62,6 +62,7 @@ namespace Match3.Board
         {
             var view = _views[cell.X, cell.Y];
             view.SetSprite(_spriteProvider.GetSprite(cell.Type));
+            view.SetSpecialVisual(cell.Special);
         }
 
         public void RefreshCells(List<BoardCell> cells)
@@ -344,6 +345,22 @@ namespace Match3.Board
         public Vector3 GetCellWorldPosition(BoardCell cell)
         {
             return CellToWorld(cell.X, cell.Y);
+        }
+
+
+        public void RefreshAll(BoardModel model)
+        {
+            for (int x = 0; x < model.Width; x++)
+            {
+                for (int y = 0; y < model.Height; y++)
+                {
+                    var cell = model.Cells[x, y];
+                    var view = _views[x, y];
+                    view.SetSprite(_spriteProvider.GetSprite(cell.Type));
+                    view.SetPosition(CellToWorld(x, y));
+                    view.ResetScale();
+                }
+            }
         }
     }
 }

@@ -1,17 +1,11 @@
 using System;
 
-
 namespace Match3.Core
 {
-    /// <summary>
-    /// Чистое состояние игры: счёт и оставшиеся ходы.
-    /// Не знает ни про Unity, ни про UI — только данные и события.
-    /// </summary>
     public class GameState
     {
-        // События: UI подписывается и обновляет текст при изменении.
-        public event Action<int> ScoreChange;
-        public event Action<int> MovesChange;
+        public event Action<int> ScoreChanged;
+        public event Action<int> MovesChanged;
         public event Action GameOver;
         public event Action GameWin;
 
@@ -19,50 +13,43 @@ namespace Match3.Core
         public int MovesLeft { get; private set; }
         public bool IsGameOver { get; private set; }
         public bool IsGameWin { get; private set; }
+        public int ShufflesLeft { get; private set; }
 
         private int _targetScore;
 
-        // Инициализация: вызывается один раз при старте игры.
-        public void Initialize(int statrtingMoves, int targetScore)
+        public void Initialize(int startingMoves, int targetScore)
         {
             Score = 0;
-            MovesLeft = statrtingMoves;
+            MovesLeft = startingMoves;
             _targetScore = targetScore;
             IsGameOver = false;
             IsGameWin = false;
+            ShufflesLeft = 1; // Даем 1 перемешивание по умолчанию
 
-            // Сообщаем подписчикам текущие значения (UI обновит текст).
-            ScoreChange?.Invoke(Score);
-            MovesChange?.Invoke(MovesLeft);
+            ScoreChanged?.Invoke(Score);
+            MovesChanged?.Invoke(MovesLeft);
         }
 
-
-        // Начисление очков: вызывается после успешного хода.
-        public void AddScore(int amout)
+        public void AddScore(int amount)
         {
-            if (IsGameOver || IsGameWin || amout <= 0) return;
+            if (IsGameOver || IsGameWin || amount <= 0) return;
 
-            Score += amout;
-            ScoreChange?.Invoke(Score);
+            Score += amount;
+            ScoreChanged?.Invoke(Score);
 
-            // Проверка на победу.
-            if(Score >= _targetScore)
+            if (Score >= _targetScore)
             {
                 IsGameWin = true;
                 GameWin?.Invoke();
             }
         }
 
-
-        // Трата одного хода: вызывается после успешного хода.
-        // Если ходы закончились — выставляем GameOver и уведомляем.
         public void ConsumeMove()
         {
             if (IsGameOver || IsGameWin) return;
 
             MovesLeft--;
-
-            MovesChange?.Invoke(MovesLeft);
+            MovesChanged?.Invoke(MovesLeft);
 
             if (MovesLeft <= 0)
             {
@@ -70,6 +57,18 @@ namespace Match3.Core
                 GameOver?.Invoke();
             }
         }
+
+        public void UseShuffle()
+        {
+            ShufflesLeft--;
+        }
+
+        public void ResetGameOver()
+        {
+            IsGameOver = false;
+            // Даем 5 ходов за перемешивание
+            MovesLeft = 5;
+            MovesChanged?.Invoke(MovesLeft); // Вот здесь мы вызываем событие
+        }
     }
 }
-

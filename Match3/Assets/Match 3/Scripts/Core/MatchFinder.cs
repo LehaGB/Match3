@@ -1,24 +1,16 @@
-using NUnit.Framework;
-using NUnit.Framework.Interfaces;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace Match3.Core
 {
-    /// <summary>
-    /// Статический класс поиска совпадений 3+ в ряд по горизонтали и вертикали. 
-    /// Возвращает список клеток в results, игнорирует None.
-    /// </summary>
     public static class MatchFinder
     {
-        /// <summary>
-        /// </summary>
-        /// <param name="board"></param>
-        /// <param name="results"></param>
-        public static void FindMatches(BoardModel board, List<BoardCell> results)
+        // Ищем линии и складываем их в результаты
+        public static void FindMatches(BoardModel board, List<MatchResult> results, List<BoardCell> allMatchedCells)
         {
             results.Clear();
+            allMatchedCells.Clear();
 
+            // 1. Проверка горизонтальных линий
             for (int y = 0; y < board.Height; y++)
             {
                 int runStart = 0;
@@ -33,15 +25,22 @@ namespace Match3.Core
                         int runLength = x - runStart;
                         if (runLength >= 3)
                         {
+                            MatchResult match = new MatchResult { IsHorizontal = true };
                             for (int i = runStart; i < x; i++)
-                                results.Add(board.Cells[i, y]);
+                            {
+                                match.Cells.Add(board.Cells[i, y]);
+                                // Чтобы не дублировать клетки в общем списке (они могут быть в пересечении)
+                                if (!allMatchedCells.Contains(board.Cells[i, y]))
+                                    allMatchedCells.Add(board.Cells[i, y]);
+                            }
+                            results.Add(match);
                         }
                         runStart = x;
                     }
                 }
             }
 
-            // Вертикальные линии
+            // 2. Проверка вертикальных линий
             for (int x = 0; x < board.Width; x++)
             {
                 int runStart = 0;
@@ -56,8 +55,14 @@ namespace Match3.Core
                         int runLength = y - runStart;
                         if (runLength >= 3)
                         {
+                            MatchResult match = new MatchResult { IsHorizontal = false };
                             for (int i = runStart; i < y; i++)
-                                results.Add(board.Cells[x, i]);
+                            {
+                                match.Cells.Add(board.Cells[x, i]);
+                                if (!allMatchedCells.Contains(board.Cells[x, i]))
+                                    allMatchedCells.Add(board.Cells[x, i]);
+                            }
+                            results.Add(match);
                         }
                         runStart = y;
                     }
@@ -66,4 +71,3 @@ namespace Match3.Core
         }
     }
 }
-

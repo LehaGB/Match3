@@ -22,8 +22,8 @@ namespace Match3.UI
             var state = _boardController.State;
 
             // Подписываемся на события. Методы вызываются при изменении.
-            state.ScoreChange += OnScoreChanged;
-            state.MovesChange += OnMovesChanged;
+            state.ScoreChanged += OnScoreChanged;
+            state.MovesChanged += OnMovesChanged;
             state.GameOver += OnGameOver;
             state.GameWin += OnGameWin;
 
@@ -43,8 +43,8 @@ namespace Match3.UI
             // Обязательно отписываемся, иначе утечка памяти при перезагрузке сцены.
             if (_boardController == null || _boardController.State == null) return;
             var state = _boardController.State;
-            state.ScoreChange -= OnScoreChanged;
-            state.MovesChange -= OnMovesChanged;
+            state.ScoreChanged -= OnScoreChanged;
+            state.MovesChanged -= OnMovesChanged;
             state.GameOver -= OnGameOver;
             state.GameWin -= OnGameWin;
         }

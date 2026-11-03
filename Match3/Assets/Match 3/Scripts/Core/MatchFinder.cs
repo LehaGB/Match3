@@ -18,7 +18,7 @@ namespace Match3.Core
                 {
                     bool same = x < board.Width &&
                                 board.Cells[x, y].Type != ElementType.None &&
-                                board.Cells[x, y].Special == SpecialType.None &&
+                                
                                 board.Cells[x, y].Type == board.Cells[runStart, y].Type;
 
                     if (!same)
@@ -49,7 +49,7 @@ namespace Match3.Core
                 {
                     bool same = y < board.Height &&
                                 board.Cells[x, y].Type != ElementType.None &&
-                                board.Cells[x, y].Special == SpecialType.None &&
+                                
                                 board.Cells[x, y].Type == board.Cells[x, runStart].Type;
 
                     if (!same)

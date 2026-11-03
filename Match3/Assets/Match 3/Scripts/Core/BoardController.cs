@@ -85,7 +85,22 @@ namespace Match3.Core
             // --- ПРОВЕРКА НА БОНУСЫ ---
             if (cell1.Special != SpecialType.None || cell2.Special != SpecialType.None)
             {
+                // 1. Сначала анимируем свайп (обмен местами)
+                var specialSwapTween = _boardView.AnimateSwap(fromX, fromY, toX, toY);
+                yield return specialSwapTween.WaitForCompletion();
+
+                // 2. Активируем бонус (взрыв)
                 yield return StartCoroutine(ActivateSpecialRoutine(fromX, fromY, toX, toY));
+
+                // 3. Возвращаем визуальные объекты на их логические места
+                // (так как в модели мы обмен не делали)
+                _boardView.ResetPosition(fromX, fromY);
+                _boardView.ResetPosition(toX, toY);
+
+                // 4. Обновляем спрайты на случай, если что-то изменилось
+                _boardView.RefreshCell(_board.Cells[fromX, fromY]);
+                _boardView.RefreshCell(_board.Cells[toX, toY]);
+
                 _isBusy = false;
                 yield break;
             }
@@ -157,7 +172,25 @@ namespace Match3.Core
                 MatchFinder.FindMatches(_board, _matchResults, _allMatchedCells);
                 if (_allMatchedCells.Count == 0) break;
 
-                // 3. Обрабатываем создание бонусов (до удаления)
+                // 3. ПРОВЕРКА: есть ли в найденных линиях уже существующие бонусы?
+                bool hasSpecialInMatch = false;
+                for (int i = 0; i < _allMatchedCells.Count; i++)
+                {
+                    if (_allMatchedCells[i].Special != SpecialType.None)
+                    {
+                        hasSpecialInMatch = true;
+                        break;
+                    }
+                }
+
+                if (hasSpecialInMatch)
+                {
+                    Debug.Log("В линии найден бонус! Активируем...");
+                    yield return StartCoroutine(ActivateSpecialsInMatchRoutine());
+                    continue; // Пропускаем обычное удаление, идем на следующий круг после взрыва
+                }
+
+                // 4. Обрабатываем создание НОВЫХ бонусов (как раньше)
                 _specialSpawnList.Clear();
                 for (int i = 0; i < _matchResults.Count; i++)
                 {
@@ -168,47 +201,66 @@ namespace Match3.Core
                         SpecialType specialToCreate = match.Length >= 5 ? SpecialType.Rainbow : SpecialType.Bomb;
 
                         _specialSpawnList.Add(new SpecialSpawnInfo { X = cell.X, Y = cell.Y, Type = specialToCreate });
-
-                        // ВАЖНО: удаляем эту клетку из списка на удаление, чтобы она не исчезла!
                         _allMatchedCells.Remove(cell);
-
                         Debug.Log($"Подготовлен бонус: {specialToCreate} в ({cell.X}, {cell.Y})");
                     }
                 }
 
-                // 4. Анимация исчезновения (только для обычных элементов)
+                // 5. Анимация исчезновения (для обычных элементов)
                 var clearTween = _boardView.AnimateClear(_allMatchedCells);
                 yield return clearTween.WaitForCompletion();
 
-                // 5. Очистка модели (только для обычных элементов)
+                // 6. Очистка модели
                 _board.ClearMatches(_allMatchedCells);
 
-                // 6. Применяем бонусы к модели (они остались на своих местах)
+                // 7. Применяем новые бонусы
                 for (int i = 0; i < _specialSpawnList.Count; i++)
                 {
                     var info = _specialSpawnList[i];
                     BoardCell cell = _board.Cells[info.X, info.Y];
 
-                    // Если клетка все еще существует (не была удалена)
                     if (cell.Type != ElementType.None)
                     {
                         cell.Special = info.Type;
-                        // Бомбе даем случайный цвет, Радуге — фиолетовый (временно)
-                        cell.Type = info.Type == SpecialType.Bomb ? _board.GetRandomType() : ElementType.Banana;
-
-                        // Обновляем визуал.
+                        cell.Type = info.Type == SpecialType.Bomb ? _board.GetRandomType() : ElementType.Apple;
                         _boardView.RefreshCell(cell);
-
-                        _boardView.ForceUpdateSpecial(cell.X, cell.Y, cell.Special);
                     }
                 }
 
-                // 7. Очки и звук
+                // 8. Очки и звук
                 ShowScoreAndAddPoints();
                 if (_audio != null) _audio.PlayMatch();
 
                 cascade++;
                 if (cascade > 0 && _cameraShake != null) _cameraShake.Shake();
+            }
+        }
+
+        private IEnumerator ActivateSpecialsInMatchRoutine()
+        {
+            // Собираем все бонусы, которые попали в совпадение.
+            List<BoardCell> specialsToActivate = new List<BoardCell>();
+
+            for(int i = 0; i < _allMatchedCells.Count; i++)
+            {
+                if (_allMatchedCells[i].Special != SpecialType.None)
+                {
+                    specialsToActivate.Add(_allMatchedCells[i]);
+                }
+            }
+
+            // Взрываем каждый бонус.
+            for (int i = 0; i < specialsToActivate.Count; i++)
+            {
+                var special = specialsToActivate[i];
+                if(special.Special == SpecialType.Bomb)
+                {
+                    yield return StartCoroutine(ExplodeBombRoutine(special));
+                }
+                else if (special.Special == SpecialType.Rainbow)
+                {
+                    yield return StartCoroutine(ExplodeRainbowRoutine(special, _board.GetRandomType()));
+                }
             }
         }
 

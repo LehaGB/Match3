@@ -1,6 +1,7 @@
-
+using UnityEngine;
 using System.Collections.Generic;
 using System;
+//using System.Diagnostics;
 
 
 namespace Match3.Core
@@ -143,6 +144,14 @@ namespace Match3.Core
                         if (writeY != y)
                         {
                             Cells[x, writeY].Type = Cells[x, y].Type;
+                            Cells[x, writeY].Special = Cells[x, y].Special;
+
+                            // ЛОГ: Если падает бомба, мы это увидим
+                            if (Cells[x, y].Special == SpecialType.Bomb || Cells[x, y].Special == SpecialType.Rainbow)
+                            {
+                                Debug.Log($"ПАДЕНИЕ: Бонус {Cells[x, y].Special} упал с ({x},{y}) на ({x},{writeY})");
+                            }
+
                             Cells[x, y].Type = ElementType.None;
 
                             moves.Add(new CellMove { X = x, FromY = y, ToY = writeY });
@@ -163,6 +172,8 @@ namespace Match3.Core
                     if (Cells[x, y].Type == ElementType.None)
                     {
                         Cells[x, y].Type = GetRandomType();
+                        Cells[x, y].Special = SpecialType.None;
+
                         newCells.Add(Cells[x, y]);
                     }
                 }
@@ -175,7 +186,6 @@ namespace Match3.Core
             for (int i = 0; i < matches.Count; i++)
             {
                 matches[i].Type = ElementType.None;
-                matches[i].Special = SpecialType.None;
             }
         }
 

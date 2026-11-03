@@ -4,6 +4,7 @@ using Match3.UI;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static UnityEngine.GraphicsBuffer;
 
 namespace Match3.Core
 {
@@ -26,14 +27,13 @@ namespace Match3.Core
         private readonly List<MatchResult> _matchResults = new List<MatchResult>(16);
         private readonly List<BoardCell> _allMatchedCells = new List<BoardCell>(32);
         private readonly List<SpecialSpawnInfo> _specialSpawnList = new List<SpecialSpawnInfo>(8);
-        private readonly List<BoardCell> _chainReactionSpecials = new List<BoardCell>(8); // Для цепной реакции
+        private readonly List<BoardCell> _chainReactionSpecials = new List<BoardCell>(8);
 
         private readonly List<CellMove> _moveBuffer = new List<CellMove>(64);
         private readonly List<BoardCell> _newCellsBuffer = new List<BoardCell>(16);
 
         private bool _isBusy;
 
-        // Структура для отложенного создания бонусов
         private struct SpecialSpawnInfo
         {
             public int X;
@@ -52,7 +52,6 @@ namespace Match3.Core
             }
 
             State = new GameState();
-            // ИСПРАВЛЕНО: StartingMoves (без 's' на конце)
             State.Initialize(_levelData.StartingsMoves, _levelData.TargetScore);
             State.GameOver += OnGameOverCheckShuffle;
         }
@@ -117,6 +116,7 @@ namespace Match3.Core
                 _isBusy = false;
                 yield break;
             }
+            Debug.Log($"Свайп: from({fromX},{fromY}) Type={cell1.Type}, Spec={cell1.Special} | to({toX},{toY}) Type={cell2.Type}, Spec={cell2.Special}");
 
             yield return StartCoroutine(ResolveMatchesRoutine());
             State.ConsumeMove();
@@ -157,7 +157,7 @@ namespace Match3.Core
                 MatchFinder.FindMatches(_board, _matchResults, _allMatchedCells);
                 if (_allMatchedCells.Count == 0) break;
 
-                // 3. Обрабатываем создание бонусов
+                // 3. Обрабатываем создание бонусов (до удаления)
                 _specialSpawnList.Clear();
                 for (int i = 0; i < _matchResults.Count; i++)
                 {
@@ -165,29 +165,42 @@ namespace Match3.Core
                     if (match.Length >= 4)
                     {
                         BoardCell cell = match.Cells[match.Length / 2];
-                        // ИСПРАВЛЕНО: Rainbow (а не RainBow)
                         SpecialType specialToCreate = match.Length >= 5 ? SpecialType.Rainbow : SpecialType.Bomb;
+
                         _specialSpawnList.Add(new SpecialSpawnInfo { X = cell.X, Y = cell.Y, Type = specialToCreate });
+
+                        // ВАЖНО: удаляем эту клетку из списка на удаление, чтобы она не исчезла!
                         _allMatchedCells.Remove(cell);
+
                         Debug.Log($"Подготовлен бонус: {specialToCreate} в ({cell.X}, {cell.Y})");
                     }
                 }
 
-                // 4. Анимация исчезновения
+                // 4. Анимация исчезновения (только для обычных элементов)
                 var clearTween = _boardView.AnimateClear(_allMatchedCells);
                 yield return clearTween.WaitForCompletion();
 
-                // 5. Очистка модели
+                // 5. Очистка модели (только для обычных элементов)
                 _board.ClearMatches(_allMatchedCells);
 
-                // 6. Применяем бонусы к модели
+                // 6. Применяем бонусы к модели (они остались на своих местах)
                 for (int i = 0; i < _specialSpawnList.Count; i++)
                 {
                     var info = _specialSpawnList[i];
                     BoardCell cell = _board.Cells[info.X, info.Y];
-                    cell.Special = info.Type;
-                    cell.Type = info.Type == SpecialType.Bomb ? _board.GetRandomType() : ElementType.Banana;
-                    _boardView.RefreshCell(cell);
+
+                    // Если клетка все еще существует (не была удалена)
+                    if (cell.Type != ElementType.None)
+                    {
+                        cell.Special = info.Type;
+                        // Бомбе даем случайный цвет, Радуге — фиолетовый (временно)
+                        cell.Type = info.Type == SpecialType.Bomb ? _board.GetRandomType() : ElementType.Banana;
+
+                        // Обновляем визуал.
+                        _boardView.RefreshCell(cell);
+
+                        _boardView.ForceUpdateSpecial(cell.X, cell.Y, cell.Special);
+                    }
                 }
 
                 // 7. Очки и звук
@@ -216,27 +229,42 @@ namespace Match3.Core
         {
             BoardCell cell1 = _board.Cells[fromX, fromY];
             BoardCell cell2 = _board.Cells[toX, toY];
-            Debug.Log($"Активация: cell1({fromX},{fromY})={cell1.Special}, cell2({toX},{toY})={cell2.Special}");
+
+
+            // ЛОГ 1: Зашли в метод
+            Debug.Log($"ActivateSpecialRoutine: cell1.Special={cell1.Special}, cell2.Special={cell2.Special}");
+
             if (cell1.Special == SpecialType.Bomb || cell2.Special == SpecialType.Bomb)
             {
                 BoardCell bomb = cell1.Special == SpecialType.Bomb ? cell1 : cell2;
+
                 Debug.Log($"Взрываем бомбу в ({bomb.X}, {bomb.Y})");
+
                 yield return StartCoroutine(ExplodeBombRoutine(bomb));
             }
-            // ИСПРАВЛЕНО: Rainbow
             else if (cell1.Special == SpecialType.Rainbow || cell2.Special == SpecialType.Rainbow)
             {
                 BoardCell rainbow = cell1.Special == SpecialType.Rainbow ? cell1 : cell2;
                 BoardCell target = cell1.Special == SpecialType.Rainbow ? cell2 : cell1;
-                yield return StartCoroutine(ExplodeRainbowRoutine(rainbow, target.Type));
+
+                // Берем тип ЦЕЛЕВОЙ клетки ДО любых изменений
+                ElementType targetType = target.Type;
+                Debug.Log($"АКТИВАЦИЯ РАДУГИ: цель цвета {targetType}, радуга в ({rainbow.X},{rainbow.Y})");
+
+                yield return StartCoroutine(ExplodeRainbowRoutine(rainbow, targetType));
             }
 
+            // После взрыва запускаем разрешение (падение, рефилл, каскады)
+            Debug.Log("ActivateSpecialRoutine: запускаем ResolveMatchesRoutine");
             yield return StartCoroutine(ResolveMatchesRoutine());
             State.ConsumeMove();
         }
 
         private IEnumerator ExplodeBombRoutine(BoardCell bomb)
         {
+
+            Debug.Log($"ExplodeBombRoutine начал для бомбы ({bomb.X}, {bomb.Y})");
+
             _allMatchedCells.Clear();
             _chainReactionSpecials.Clear();
 
@@ -253,17 +281,28 @@ namespace Match3.Core
                         if (target.Type != ElementType.None)
                         {
                             _allMatchedCells.Add(target);
+
+                            // Если внутри есть еще бомба или радуга — добавляем в очередь на взрыв
                             if (target.Special != SpecialType.None && target != bomb)
+                            {
                                 _chainReactionSpecials.Add(target);
+                            }
                         }
                     }
                 }
             }
+            Debug.Log($"ExplodeBombRoutine: собрали {_allMatchedCells.Count} клеток для взрыва");
 
+            // Анимация исчезновения
             var clearTween = _boardView.AnimateClear(_allMatchedCells);
             yield return clearTween.WaitForCompletion();
+
             _board.ClearMatches(_allMatchedCells);
             if (_audio != null) _audio.PlayMatch();
+
+            // НОВОЕ: Затираем Special у взорванных клеток, чтобы не было фантомов
+            for (int i = 0; i < _allMatchedCells.Count; i++)
+                _allMatchedCells[i].Special = SpecialType.None;
 
             // Цепная реакция
             for (int i = 0; i < _chainReactionSpecials.Count; i++)
@@ -279,7 +318,7 @@ namespace Match3.Core
         private IEnumerator ExplodeRainbowRoutine(BoardCell rainbow, ElementType targetType)
         {
             _allMatchedCells.Clear();
-            _chainReactionSpecials.Clear(); // ИСПРАВЛЕНО: используем _chainReactionSpecials вместо удаленного _specialBuffer
+            _chainReactionSpecials.Clear();
 
             // Уничтожаем все элементы нужного цвета
             for (int x = 0; x < _board.Width; x++)
@@ -291,15 +330,23 @@ namespace Match3.Core
                     {
                         _allMatchedCells.Add(target);
                         if (target.Special != SpecialType.None && target != rainbow)
+                        {
                             _chainReactionSpecials.Add(target);
+                        }
                     }
                 }
             }
+            // ЛОГ: сколько клеток нашли
+            Debug.Log($"ВЗРЫВ РАДУГИ: нашли {_allMatchedCells.Count} клеток цвета {targetType} (включая радугу)");
 
             var clearTween = _boardView.AnimateClear(_allMatchedCells);
             yield return clearTween.WaitForCompletion();
             _board.ClearMatches(_allMatchedCells);
             if (_audio != null) _audio.PlayMatch();
+
+            // НОВОЕ: Затираем Special у взорванных клеток
+            for (int i = 0; i < _allMatchedCells.Count; i++)
+                _allMatchedCells[i].Special = SpecialType.None;
 
             // Цепная реакция
             for (int i = 0; i < _chainReactionSpecials.Count; i++)

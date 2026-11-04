@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 
 namespace Match3.Core
@@ -17,7 +18,7 @@ namespace Match3.Core
         // Разблокирует следующий уровень.
         public static void UnLockLevel(int levelIndex)
         {
-            if(levelIndex > GetUnlockedLevel())
+            if (levelIndex > GetUnlockedLevel())
             {
                 PlayerPrefs.SetInt(UnlockedLevelKey, levelIndex);
                 PlayerPrefs.Save();

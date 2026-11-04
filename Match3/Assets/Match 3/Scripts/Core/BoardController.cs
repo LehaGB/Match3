@@ -43,6 +43,13 @@ namespace Match3.Core
 
         private void Awake()
         {
+
+            // Если уровень не назначен вручную, пытаемся взять его из LevelManager
+            if (_levelData == null && LevelManager.Instance != null)
+            {
+                _levelData = LevelManager.Instance.CurrentLevel;
+            }
+
             if (_levelData == null)
             {
                 Debug.LogError("LevelData не назначен в инспекторе!");

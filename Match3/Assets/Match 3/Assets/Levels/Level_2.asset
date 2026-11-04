@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4896d4b4e2afb864d8e5fc976782214a, type: 3}
   m_Name: Level_2
   m_EditorClassIdentifier: Assembly-CSharp::Match3.Core.LevelData
-  LevelIndex: 0
+  LevelIndex: 2
   Width: 8
   Height: 8
-  StartingsMoves: 20
-  TargetScore: 1000
+  StartingsMoves: 15
+  TargetScore: 700

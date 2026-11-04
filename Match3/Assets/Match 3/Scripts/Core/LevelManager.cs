@@ -13,25 +13,29 @@ namespace Match3.Core
 
         private void Awake()
         {
-            if(Instance != null && Instance != this)
+            // Убираем DontDestroyOnLoad. Пусть менеджер живет только в своей сцене.
+            if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
                 return;
             }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+
+            // При старте пытаемся загрузить уровень, который был сохранен
+            int savedLevel = PlayerPrefs.GetInt("SelectedLevel", 1);
+            SetCurrentLevel(savedLevel);
         }
 
-
-        // Вызывается, когда игрок выбирает уровень.
         public void SetCurrentLevel(int levelIndex)
         {
-            if(levelIndex >= 1 && AllLevels.Length <= 1)
+            if (levelIndex >= 1 && levelIndex <= AllLevels.Length)
             {
                 CurrentLevel = AllLevels[levelIndex - 1];
+                // Сохраняем выбор, чтобы он пережил загрузку сцены
+                PlayerPrefs.SetInt("SelectedLevel", levelIndex);
+                PlayerPrefs.Save();
                 Debug.Log($"Выбран уровень {levelIndex}");
             }
         }
     }
 }
-

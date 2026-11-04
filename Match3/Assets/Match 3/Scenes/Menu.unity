@@ -474,9 +474,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Match3.Core.LevelManager
   AllLevels:
-  - {fileID: 11400000, guid: dde380de80e05ef469b1915a7c800ca7, type: 2}
-  - {fileID: 11400000, guid: b5f732940ba4b2542a8f438ea43bf238, type: 2}
-  - {fileID: 11400000, guid: 8b77219a013822b49be8db1e763d2234, type: 2}
+  - {fileID: 11400000, guid: 664f0c5957ae09b4793179ade6852f46, type: 2}
+  - {fileID: 11400000, guid: 202f0787e815677489043455d7096bd5, type: 2}
+  - {fileID: 11400000, guid: d04f76e8569b1fc4ea77b1880776a828, type: 2}
 --- !u!4 &1678744792
 Transform:
   m_ObjectHideFlags: 0

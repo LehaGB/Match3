@@ -43,16 +43,23 @@ namespace Match3.Core
 
         private void Awake()
         {
-
-            // Если уровень не назначен вручную, пытаемся взять его из LevelManager
+            // 1. Если LevelManager есть, берем уровень из него
             if (_levelData == null && LevelManager.Instance != null)
             {
                 _levelData = LevelManager.Instance.CurrentLevel;
             }
 
+            // 2. Если уровня всё равно нет (запуск из Game напрямую), берем первый попавшийся
+            if (_levelData == null && LevelManager.Instance != null && LevelManager.Instance.AllLevels.Length > 0)
+            {
+                _levelData = LevelManager.Instance.AllLevels[0]; // Берем Level_1 для теста
+                Debug.LogWarning("LevelData не был выбран, используем Level_1 по умолчанию.");
+            }
+
+            // 3. Если LevelManager вообще нет (нет объекта в сцене), используем жесткие настройки
             if (_levelData == null)
             {
-                Debug.LogError("LevelData не назначен в инспекторе!");
+                Debug.LogError("LevelData не назначен! Использую настройки по умолчанию (20 ходов, 1000 очков).");
                 State = new GameState();
                 State.Initialize(20, 1000);
                 return;
@@ -61,6 +68,7 @@ namespace Match3.Core
             State = new GameState();
             State.Initialize(_levelData.StartingsMoves, _levelData.TargetScore);
             State.GameOver += OnGameOverCheckShuffle;
+            State.GameWin += OnGameWinUnlockNextLevel; // <--- Убедись, что эта строка тоже есть
         }
 
         private void Start()
@@ -425,6 +433,16 @@ namespace Match3.Core
                 State.UseShuffle();
                 Debug.Log("Ходы кончились! Перемешиваем поле.");
                 StartCoroutine(ShuffleRoutine());
+            }
+        }
+
+        private void OnGameWinUnlockNextLevel()
+        {
+            // Разблокируем следующий уровень (текущий + 1).
+            if (_levelData != null)
+            {
+                int nextLevelIndex = _levelData.LevelIndex + 1;
+                LevelProgress.UnLockLevel(nextLevelIndex);
             }
         }
 

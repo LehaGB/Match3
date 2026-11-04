@@ -10,6 +10,7 @@ namespace Match3.UI
     // Не знает про BoardController — только про GameState.
     public class GameUIView : MonoBehaviour
     {
+        [SerializeField] private TMP_Text _levelText;
         [SerializeField] private BoardController _boardController;
         [SerializeField] private TMP_Text _scoreText;
         [SerializeField] private TMP_Text _movesText;
@@ -27,7 +28,15 @@ namespace Match3.UI
             state.GameOver += OnGameOver;
             state.GameWin += OnGameWin;
 
-
+            // Показываем номер текущего уровня.
+            if (LevelManager.Instance != null && LevelManager.Instance.CurrentLevel != null)
+            {
+                _levelText.text = $"Уровень {LevelManager.Instance.CurrentLevel.LevelIndex}";
+            }
+            else
+            {
+                _levelText.text = "Уровень ?";
+            }
         }
 
         private void OnGameWin()

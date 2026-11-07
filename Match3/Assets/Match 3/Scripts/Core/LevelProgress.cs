@@ -1,31 +1,26 @@
 using UnityEngine;
-using UnityEngine.UI;
-
 
 namespace Match3.Core
 {
-    public class LevelProgress : MonoBehaviour
+    public static class LevelProgress
     {
-        private const string UnlockedLevelKey = "UnlockedLevel";
+        private const string UnlockedIndexKey = "UnlockedLevelIndex";
 
-        // Возвращает номер последнего открытого уровня (по умолчанию 1).
+        // Возвращает индекс последнего открытого уровня (0 — первый)
         public static int GetUnlockedLevel()
         {
-            return PlayerPrefs.GetInt(UnlockedLevelKey, 1);
+            return PlayerPrefs.GetInt(UnlockedIndexKey, 0); // По умолчанию 0 (первый уровень)
         }
 
-
-        // Разблокирует следующий уровень.
-        public static void UnLockLevel(int levelIndex)
+        // Разблокирует следующий уровень по его индексу
+        public static void UnlockLevel(int index)
         {
-            if (levelIndex > GetUnlockedLevel())
+            if (index > GetUnlockedLevel())
             {
-                PlayerPrefs.SetInt(UnlockedLevelKey, levelIndex);
+                PlayerPrefs.SetInt(UnlockedIndexKey, index);
                 PlayerPrefs.Save();
-
-                Debug.Log($"Уровень {levelIndex} разблокирован!");
+                Debug.Log($"Разблокирован уровень с индексом {index}");
             }
         }
     }
 }
-

@@ -15,5 +15,5 @@ MonoBehaviour:
   LevelIndex: 1
   Width: 8
   Height: 8
-  StartingsMoves: 20
-  TargetScore: 200
+  StartingsMoves: 10
+  TargetScore: 350

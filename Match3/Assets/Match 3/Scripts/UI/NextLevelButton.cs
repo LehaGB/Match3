@@ -9,33 +9,22 @@ namespace Match3.UI
     {
         public void LoadNextLevel()
         {
-            Debug.Log("КНОПКА ДАЛЕЕ НАЖАТА!"); // <--- ВРЕМЕННЫЙ ЛОГ
-
             if (LevelManager.Instance != null && LevelManager.Instance.CurrentLevel != null)
             {
-                int nextLevelIndex = LevelManager.Instance.CurrentLevel.LevelIndex + 1;
+                int nextIndex = LevelManager.Instance.CurrentLevelIndex + 1;
 
-                // Проверяем, существует ли следующий уровень в массиве.
-                if(nextLevelIndex <= LevelManager.Instance.AllLevels.Length)
+                if (nextIndex < LevelManager.Instance.AllLevels.Length)
                 {
-                    // Убиваем все анимации перед сменой сцены
                     DOTween.KillAll();
-
-                    LevelManager.Instance.SetCurrentLevel(nextLevelIndex);
-
-                    // Перезагружаем текущую игровую сцену.
+                    LevelManager.Instance.SetCurrentLevel(nextIndex);
                     SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
                 }
                 else
                 {
                     Debug.Log("Это был последний уровень!");
-                    // Если уровней больше нет - можно вернуть в меню
+                    DOTween.KillAll();
                     SceneManager.LoadScene("Menu");
                 }
-            }
-            else
-            {
-                Debug.LogError("LevelManager не найден или CurrentLevel пуст!");
             }
         }
     }

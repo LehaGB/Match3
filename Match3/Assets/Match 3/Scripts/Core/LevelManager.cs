@@ -10,31 +10,34 @@ namespace Match3.Core
         public LevelData[] AllLevels;
 
         public LevelData CurrentLevel { get; private set; }
+        public int CurrentLevelIndex { get; private set; } // 0, 1, 2...
 
         private void Awake()
         {
-            // Убираем DontDestroyOnLoad. Пусть менеджер живет только в своей сцене.
             if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
                 return;
             }
             Instance = this;
+            DontDestroyOnLoad(gameObject);
 
-            // При старте пытаемся загрузить уровень, который был сохранен
-            int savedLevel = PlayerPrefs.GetInt("SelectedLevel", 1);
-            SetCurrentLevel(savedLevel);
+            // При старте загружаем сохраненный индекс (по умолчанию 0 — первый уровень)
+            int savedIndex = PlayerPrefs.GetInt("SelectedLevelIndex", 0);
+            SetCurrentLevel(savedIndex);
         }
 
-        public void SetCurrentLevel(int levelIndex)
+        // Передаем ИНДЕКС (0, 1, 2), а не номер уровня (1, 2, 3)
+        public void SetCurrentLevel(int index)
         {
-            if (levelIndex >= 1 && levelIndex <= AllLevels.Length)
+            if (index >= 0 && index < AllLevels.Length)
             {
-                CurrentLevel = AllLevels[levelIndex - 1];
-                // Сохраняем выбор, чтобы он пережил загрузку сцены
-                PlayerPrefs.SetInt("SelectedLevel", levelIndex);
+                CurrentLevelIndex = index;
+                CurrentLevel = AllLevels[index];
+
+                PlayerPrefs.SetInt("SelectedLevelIndex", index);
                 PlayerPrefs.Save();
-                Debug.Log($"Выбран уровень {levelIndex}");
+                Debug.Log($"Выбран уровень с индексом {index} (по счету: {index + 1})");
             }
         }
     }

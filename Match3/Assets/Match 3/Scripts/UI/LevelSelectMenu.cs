@@ -38,39 +38,36 @@ namespace Match3.UI
 
             for (int i = 0; i < allLevels.Length; i++)
             {
-                int levelNumber = i + 1;
-                bool isUnlocked = levelNumber <= unlockedLevel;
+                int levelIndex = i; // Индекс 0, 1, 2...
+                int levelNumber = i + 1; // Номер для отображения 1, 2, 3...
 
-                // 1. Создаем кнопку
+                // Открыт ли этот уровень? (если индекс меньше или равен количеству пройденных)
+                int unlockedIndex = LevelProgress.GetUnlockedLevel();
+                bool isUnlocked = levelIndex <= unlockedIndex;
+
                 Button button = Instantiate(_levelButtonPrefab, _buttonsParent);
 
-                // 2. НАСТРАИВАЕМ ПОЗИЦИЮ (ставим в столбик с отступом вниз)
                 RectTransform rect = button.GetComponent<RectTransform>();
                 if (rect != null)
                 {
-                    // anchoredPosition работает относительно центра родителя (LevelMenuPanel)
-                    // X = 0 (по центру), Y = -100, -200, -300...
-                    // Делаем так, чтобы Уровень 1 был сверху, а остальные шли вниз
                     float startY = 150f;
-                    rect.anchoredPosition = new Vector2(0, startY - (100f * (levelNumber - 1)));
+                    rect.anchoredPosition = new Vector2(0, startY - (150f * levelIndex));
                 }
 
-                // 3. Настраиваем текст
                 TMP_Text buttonText = button.GetComponentInChildren<TMP_Text>();
                 if (buttonText != null)
                     buttonText.text = $"Уровень {levelNumber}";
 
-                // 4. Включаем/выключаем кнопку
                 button.interactable = isUnlocked;
 
-                // 5. Привязываем клик
                 if (isUnlocked)
                 {
-                    int levelIndex = levelNumber;
+                    int capturedIndex = levelIndex;
                     button.onClick.AddListener(() =>
                     {
-                        Debug.Log($"КЛИК! Выбран уровень {levelIndex}");
-                        OnLevelSelected(levelIndex);
+                        Debug.Log($"Нажимаем уровень с индексом {capturedIndex}");
+                        LevelManager.Instance.SetCurrentLevel(capturedIndex);
+                        SceneManager.LoadScene("Game");
                     });
                 }
             }

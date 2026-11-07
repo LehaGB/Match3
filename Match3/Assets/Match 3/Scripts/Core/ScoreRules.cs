@@ -8,15 +8,27 @@ namespace Match3.Core
     /// </summary>
     public static class ScoreRules 
     {
+
+        // Базовые очки за обычные совпадения
+        public const int BaseMatchScore = 10;
+        public const int BonusFor4Match = 25; // За линию из 4
+        public const int BonusFor5Match = 50; // За линию из 5+
+
         public static int CalculateForMatch(int matchedCells)
         {
             if (matchedCells < 3) return 0;
-            if (matchedCells == 3) return 10;
-            if (matchedCells == 4) return 40;
-            return 30;
+            if (matchedCells == 3) return BaseMatchScore;
+            if (matchedCells == 4) return BaseMatchScore * 2;
+            return BonusFor5Match;
         }
 
-
+        // НОВОЕ: Начисление очков за СОЗДАНИЕ бонуса (Бомбы или Радуги)
+        public static int GetBonusForSpecialCreation(SpecialType type)
+        {
+            if (type == SpecialType.Bomb) return BonusFor4Match;
+            if (type == SpecialType.Rainbow) return BonusFor5Match;
+            return 0;
+        }
     }
 }
 

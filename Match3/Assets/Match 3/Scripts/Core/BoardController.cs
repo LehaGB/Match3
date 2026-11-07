@@ -4,7 +4,6 @@ using Match3.UI;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 
 namespace Match3.Core
 {
@@ -19,11 +18,13 @@ namespace Match3.Core
         [SerializeField] private AudioManager _audio;
         [SerializeField] private CameraShake _cameraShake;
 
+        // Событие для UI (чтобы показать текст перемешивания)
+        public event System.Action OnShuffleStarted;
+
         public GameState State { get; private set; }
 
         private BoardModel _board;
 
-        // Буферы
         private readonly List<MatchResult> _matchResults = new List<MatchResult>(16);
         private readonly List<BoardCell> _allMatchedCells = new List<BoardCell>(32);
         private readonly List<SpecialSpawnInfo> _specialSpawnList = new List<SpecialSpawnInfo>(8);
@@ -43,32 +44,27 @@ namespace Match3.Core
 
         private void Awake()
         {
-            // 1. Если LevelManager есть, берем уровень из него
-            if (_levelData == null && LevelManager.Instance != null)
+            // Берем уровень из LevelManager (который пришел из сцены Menu)
+            if (LevelManager.Instance != null)
             {
                 _levelData = LevelManager.Instance.CurrentLevel;
             }
 
-            // 2. Если уровня всё равно нет (запуск из Game напрямую), берем первый попавшийся
-            if (_levelData == null && LevelManager.Instance != null && LevelManager.Instance.AllLevels.Length > 0)
-            {
-                _levelData = LevelManager.Instance.AllLevels[0]; // Берем Level_1 для теста
-                Debug.LogWarning("LevelData не был выбран, используем Level_1 по умолчанию.");
-            }
-
-            // 3. Если LevelManager вообще нет (нет объекта в сцене), используем жесткие настройки
             if (_levelData == null)
             {
-                Debug.LogError("LevelData не назначен! Использую настройки по умолчанию (20 ходов, 1000 очков).");
+                Debug.LogError("LevelData не назначен! Запусти игру через меню.");
                 State = new GameState();
-                State.Initialize(20, 1000);
+                State.Initialize(15, 350);
                 return;
             }
 
             State = new GameState();
             State.Initialize(_levelData.StartingsMoves, _levelData.TargetScore);
-            State.GameOver += OnGameOverCheckShuffle;
-            State.GameWin += OnGameWinUnlockNextLevel; // <--- Убедись, что эта строка тоже есть
+
+            State.GameWin += OnGameWinUnlockNextLevel;
+            State.MovesChanged += OnMovesChanged;
+
+            Debug.Log($"Загружен уровень {_levelData.LevelIndex}: Ходов = {_levelData.StartingsMoves}, Цель = {_levelData.TargetScore}");
         }
 
         private void Start()
@@ -79,6 +75,29 @@ namespace Match3.Core
             _board = new BoardModel(w, h);
             _boardView.Initialize(_board);
             _boardView.SetSwipeListener(this);
+        }
+
+        private void OnMovesChanged(int moves)
+        {
+            //// Если ходов стало 5 (после того как было 0), значит, сработало перемешивание
+            //if (moves == 5 && !State.IsGameOver && !State.IsGameWin)
+            //{
+            //    Debug.Log("Активировано перемешивание поля!");
+            //    OnShuffleStarted?.Invoke(); // Сообщаем UI
+            //    StartCoroutine(ShuffleRoutine());
+            //}
+        }
+
+        private void OnGameWinUnlockNextLevel()
+        {
+            if (LevelManager.Instance != null)
+            {
+                int nextIndex = LevelManager.Instance.CurrentLevelIndex + 1;
+                if (nextIndex < LevelManager.Instance.AllLevels.Length)
+                {
+                    LevelProgress.UnlockLevel(nextIndex);
+                }
+            }
         }
 
         public void OnSwipe(int fromX, int fromY, int toX, int toY)
@@ -95,24 +114,15 @@ namespace Match3.Core
             BoardCell cell1 = _board.Cells[fromX, fromY];
             BoardCell cell2 = _board.Cells[toX, toY];
 
-            Debug.Log($"Свайп: ({fromX},{fromY}) Spec={cell1.Special}, ({toX},{toY}) Spec={cell2.Special}");
-
-            // --- ПРОВЕРКА НА БОНУСЫ ---
             if (cell1.Special != SpecialType.None || cell2.Special != SpecialType.None)
             {
-                // 1. Сначала анимируем свайп (обмен местами)
                 var specialSwapTween = _boardView.AnimateSwap(fromX, fromY, toX, toY);
                 yield return specialSwapTween.WaitForCompletion();
 
-                // 2. Активируем бонус (взрыв)
                 yield return StartCoroutine(ActivateSpecialRoutine(fromX, fromY, toX, toY));
 
-                // 3. Возвращаем визуальные объекты на их логические места
-                // (так как в модели мы обмен не делали)
                 _boardView.ResetPosition(fromX, fromY);
                 _boardView.ResetPosition(toX, toY);
-
-                // 4. Обновляем спрайты на случай, если что-то изменилось
                 _boardView.RefreshCell(_board.Cells[fromX, fromY]);
                 _boardView.RefreshCell(_board.Cells[toX, toY]);
 
@@ -120,7 +130,6 @@ namespace Match3.Core
                 yield break;
             }
 
-            // --- ОБЫЧНЫЙ СВАЙП ---
             var swapTween = _boardView.AnimateSwap(fromX, fromY, toX, toY);
             yield return swapTween.WaitForCompletion();
 
@@ -131,7 +140,6 @@ namespace Match3.Core
 
             if (_allMatchedCells.Count == 0)
             {
-                // Откат
                 _board.Swap(fromX, fromY, toX, toY);
                 _boardView.SwapViews(fromX, fromY, toX, toY);
 
@@ -146,10 +154,18 @@ namespace Match3.Core
                 _isBusy = false;
                 yield break;
             }
-            Debug.Log($"Свайп: from({fromX},{fromY}) Type={cell1.Type}, Spec={cell1.Special} | to({toX},{toY}) Type={cell2.Type}, Spec={cell2.Special}");
 
             yield return StartCoroutine(ResolveMatchesRoutine());
             State.ConsumeMove();
+
+            // Если ходы есть, но поле "мертвое" — перемешиваем
+            if (!_board.HasPossibleMoves() && State.MovesLeft > 0 && !State.IsGameOver && !State.IsGameWin)
+            {
+                Debug.Log("Нет возможных ходов! Перемешиваем поле.");
+                OnShuffleStarted?.Invoke(); // Показываем сообщение
+                StartCoroutine(ShuffleRoutine());
+            }
+
             _isBusy = false;
         }
 
@@ -159,7 +175,6 @@ namespace Match3.Core
 
             while (true)
             {
-                // 1. Падение и рефилл, если есть пустые
                 bool hasEmpty = false;
                 for (int x = 0; x < _board.Width; x++)
                     for (int y = 0; y < _board.Height; y++)
@@ -183,11 +198,9 @@ namespace Match3.Core
                     }
                 }
 
-                // 2. Ищем совпадения
                 MatchFinder.FindMatches(_board, _matchResults, _allMatchedCells);
                 if (_allMatchedCells.Count == 0) break;
 
-                // 3. ПРОВЕРКА: есть ли в найденных линиях уже существующие бонусы?
                 bool hasSpecialInMatch = false;
                 for (int i = 0; i < _allMatchedCells.Count; i++)
                 {
@@ -200,9 +213,8 @@ namespace Match3.Core
 
                 if (hasSpecialInMatch)
                 {
-                    Debug.Log("В линии найден бонус! Активируем...");
                     yield return StartCoroutine(ActivateSpecialsInMatchRoutine());
-                    continue; // Пропускаем обычное удаление, идем на следующий круг после взрыва
+                    continue;
                 }
 
                 // 4. Обрабатываем создание НОВЫХ бонусов (как раньше)
@@ -217,18 +229,28 @@ namespace Match3.Core
 
                         _specialSpawnList.Add(new SpecialSpawnInfo { X = cell.X, Y = cell.Y, Type = specialToCreate });
                         _allMatchedCells.Remove(cell);
-                        Debug.Log($"Подготовлен бонус: {specialToCreate} в ({cell.X}, {cell.Y})");
+
+                        // НОВОЕ: Начисляем бонусные очки за создание
+                        int bonusPoints = ScoreRules.GetBonusForSpecialCreation(specialToCreate);
+                        if (bonusPoints > 0)
+                        {
+                            State.AddScore(bonusPoints);
+
+                            // Показываем всплывающий текст (например, "+20")
+                            if (_floatingScorePool != null)
+                            {
+                                Vector3 pos = _boardView.GetCellWorldPosition(cell);
+                                _floatingScorePool.Play(pos, bonusPoints);
+                            }
+                        }
                     }
                 }
 
-                // 5. Анимация исчезновения (для обычных элементов)
                 var clearTween = _boardView.AnimateClear(_allMatchedCells);
                 yield return clearTween.WaitForCompletion();
 
-                // 6. Очистка модели
                 _board.ClearMatches(_allMatchedCells);
 
-                // 7. Применяем новые бонусы
                 for (int i = 0; i < _specialSpawnList.Count; i++)
                 {
                     var info = _specialSpawnList[i];
@@ -239,43 +261,15 @@ namespace Match3.Core
                         cell.Special = info.Type;
                         cell.Type = info.Type == SpecialType.Bomb ? _board.GetRandomType() : ElementType.Apple;
                         _boardView.RefreshCell(cell);
+                        _boardView.ForceUpdateSpecial(cell.X, cell.Y, cell.Special);
                     }
                 }
 
-                // 8. Очки и звук
                 ShowScoreAndAddPoints();
                 if (_audio != null) _audio.PlayMatch();
 
                 cascade++;
                 if (cascade > 0 && _cameraShake != null) _cameraShake.Shake();
-            }
-        }
-
-        private IEnumerator ActivateSpecialsInMatchRoutine()
-        {
-            // Собираем все бонусы, которые попали в совпадение.
-            List<BoardCell> specialsToActivate = new List<BoardCell>();
-
-            for(int i = 0; i < _allMatchedCells.Count; i++)
-            {
-                if (_allMatchedCells[i].Special != SpecialType.None)
-                {
-                    specialsToActivate.Add(_allMatchedCells[i]);
-                }
-            }
-
-            // Взрываем каждый бонус.
-            for (int i = 0; i < specialsToActivate.Count; i++)
-            {
-                var special = specialsToActivate[i];
-                if(special.Special == SpecialType.Bomb)
-                {
-                    yield return StartCoroutine(ExplodeBombRoutine(special));
-                }
-                else if (special.Special == SpecialType.Rainbow)
-                {
-                    yield return StartCoroutine(ExplodeRainbowRoutine(special, _board.GetRandomType()));
-                }
             }
         }
 
@@ -297,45 +291,28 @@ namespace Match3.Core
             BoardCell cell1 = _board.Cells[fromX, fromY];
             BoardCell cell2 = _board.Cells[toX, toY];
 
-
-            // ЛОГ 1: Зашли в метод
-            Debug.Log($"ActivateSpecialRoutine: cell1.Special={cell1.Special}, cell2.Special={cell2.Special}");
-
             if (cell1.Special == SpecialType.Bomb || cell2.Special == SpecialType.Bomb)
             {
                 BoardCell bomb = cell1.Special == SpecialType.Bomb ? cell1 : cell2;
-
-                Debug.Log($"Взрываем бомбу в ({bomb.X}, {bomb.Y})");
-
                 yield return StartCoroutine(ExplodeBombRoutine(bomb));
             }
             else if (cell1.Special == SpecialType.Rainbow || cell2.Special == SpecialType.Rainbow)
             {
                 BoardCell rainbow = cell1.Special == SpecialType.Rainbow ? cell1 : cell2;
                 BoardCell target = cell1.Special == SpecialType.Rainbow ? cell2 : cell1;
-
-                // Берем тип ЦЕЛЕВОЙ клетки ДО любых изменений
                 ElementType targetType = target.Type;
-                Debug.Log($"АКТИВАЦИЯ РАДУГИ: цель цвета {targetType}, радуга в ({rainbow.X},{rainbow.Y})");
-
                 yield return StartCoroutine(ExplodeRainbowRoutine(rainbow, targetType));
             }
 
-            // После взрыва запускаем разрешение (падение, рефилл, каскады)
-            Debug.Log("ActivateSpecialRoutine: запускаем ResolveMatchesRoutine");
             yield return StartCoroutine(ResolveMatchesRoutine());
             State.ConsumeMove();
         }
 
         private IEnumerator ExplodeBombRoutine(BoardCell bomb)
         {
-
-            Debug.Log($"ExplodeBombRoutine начал для бомбы ({bomb.X}, {bomb.Y})");
-
             _allMatchedCells.Clear();
             _chainReactionSpecials.Clear();
 
-            // Собираем клетки для взрыва (крест 3x3)
             for (int dx = -1; dx <= 1; dx++)
             {
                 for (int dy = -1; dy <= 1; dy++)
@@ -348,30 +325,22 @@ namespace Match3.Core
                         if (target.Type != ElementType.None)
                         {
                             _allMatchedCells.Add(target);
-
-                            // Если внутри есть еще бомба или радуга — добавляем в очередь на взрыв
                             if (target.Special != SpecialType.None && target != bomb)
-                            {
                                 _chainReactionSpecials.Add(target);
-                            }
                         }
                     }
                 }
             }
-            Debug.Log($"ExplodeBombRoutine: собрали {_allMatchedCells.Count} клеток для взрыва");
 
-            // Анимация исчезновения
             var clearTween = _boardView.AnimateClear(_allMatchedCells);
             yield return clearTween.WaitForCompletion();
 
             _board.ClearMatches(_allMatchedCells);
             if (_audio != null) _audio.PlayMatch();
 
-            // НОВОЕ: Затираем Special у взорванных клеток, чтобы не было фантомов
             for (int i = 0; i < _allMatchedCells.Count; i++)
                 _allMatchedCells[i].Special = SpecialType.None;
 
-            // Цепная реакция
             for (int i = 0; i < _chainReactionSpecials.Count; i++)
             {
                 var special = _chainReactionSpecials[i];
@@ -387,7 +356,6 @@ namespace Match3.Core
             _allMatchedCells.Clear();
             _chainReactionSpecials.Clear();
 
-            // Уничтожаем все элементы нужного цвета
             for (int x = 0; x < _board.Width; x++)
             {
                 for (int y = 0; y < _board.Height; y++)
@@ -397,25 +365,20 @@ namespace Match3.Core
                     {
                         _allMatchedCells.Add(target);
                         if (target.Special != SpecialType.None && target != rainbow)
-                        {
                             _chainReactionSpecials.Add(target);
-                        }
                     }
                 }
             }
-            // ЛОГ: сколько клеток нашли
-            Debug.Log($"ВЗРЫВ РАДУГИ: нашли {_allMatchedCells.Count} клеток цвета {targetType} (включая радугу)");
 
             var clearTween = _boardView.AnimateClear(_allMatchedCells);
             yield return clearTween.WaitForCompletion();
+
             _board.ClearMatches(_allMatchedCells);
             if (_audio != null) _audio.PlayMatch();
 
-            // НОВОЕ: Затираем Special у взорванных клеток
             for (int i = 0; i < _allMatchedCells.Count; i++)
                 _allMatchedCells[i].Special = SpecialType.None;
 
-            // Цепная реакция
             for (int i = 0; i < _chainReactionSpecials.Count; i++)
             {
                 var special = _chainReactionSpecials[i];
@@ -426,23 +389,22 @@ namespace Match3.Core
             }
         }
 
-        private void OnGameOverCheckShuffle()
+        private IEnumerator ActivateSpecialsInMatchRoutine()
         {
-            if (State.ShufflesLeft > 0)
+            List<BoardCell> specialsToActivate = new List<BoardCell>();
+            for (int i = 0; i < _allMatchedCells.Count; i++)
             {
-                State.UseShuffle();
-                Debug.Log("Ходы кончились! Перемешиваем поле.");
-                StartCoroutine(ShuffleRoutine());
+                if (_allMatchedCells[i].Special != SpecialType.None)
+                    specialsToActivate.Add(_allMatchedCells[i]);
             }
-        }
 
-        private void OnGameWinUnlockNextLevel()
-        {
-            // Разблокируем следующий уровень (текущий + 1).
-            if (_levelData != null)
+            for (int i = 0; i < specialsToActivate.Count; i++)
             {
-                int nextLevelIndex = _levelData.LevelIndex + 1;
-                LevelProgress.UnLockLevel(nextLevelIndex);
+                var special = specialsToActivate[i];
+                if (special.Special == SpecialType.Bomb)
+                    yield return StartCoroutine(ExplodeBombRoutine(special));
+                else if (special.Special == SpecialType.Rainbow)
+                    yield return StartCoroutine(ExplodeRainbowRoutine(special, _board.GetRandomType()));
             }
         }
 
@@ -451,7 +413,6 @@ namespace Match3.Core
             _isBusy = true;
             yield return new WaitForSeconds(0.5f);
 
-            State.ResetGameOver();
             _board = new BoardModel(_board.Width, _board.Height);
             _boardView.RefreshAll(_board);
 

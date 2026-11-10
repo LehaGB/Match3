@@ -3,66 +3,70 @@ using UnityEngine;
 
 namespace Match3.Board
 {
-    /// <summary>
-    /// Компонент одного визуального элемента: 
-    /// SpriteRenderer (кэшируется), SetSprite, SetPosition. 
-    /// Не знает про ElementType — просто показывает спрайт.
-    /// </summary>
     [RequireComponent(typeof(SpriteRenderer))]
     public class BoardElementView : MonoBehaviour
     {
         private SpriteRenderer _renderer;
+        private Vector3 _baseScale;
+        private Quaternion _baseRotation;
+
+        // Для вращения Радуги
+        private bool _isRotating = false;
+        private float _rotationSpeed = 90f; // Градусов в секунду
+
         public SpriteRenderer Renderer
         {
             get
             {
-                if(_renderer == null)
-                {
-                    _renderer = GetComponent<SpriteRenderer>();
-                }
+                if (_renderer == null) _renderer = GetComponent<SpriteRenderer>();
                 return _renderer;
             }
         }
 
-        public void SetSprite(Sprite sprite)
+        private void Awake()
         {
-            Renderer.sprite = sprite;
+            _baseScale = transform.localScale;
+            _baseRotation = transform.rotation;
         }
 
-        public void SetPosition(Vector3 position)
-        {
-            transform.position = position;
-        }
-
-
-        // сброс масштаба (после анимации исчезновения).
-        public void ResetScale()
-        {
-            transform.localScale = Vector3.one;
-        }
+        public void SetSprite(Sprite sprite) => Renderer.sprite = sprite;
+        public void SetPosition(Vector3 position) => transform.position = position;
+        public void ResetScale() => transform.localScale = _baseScale;
 
         public void SetSpecialVisual(SpecialType special)
         {
-            if (special == SpecialType.None)
+            // Сбрасываем к базовому состоянию
+            transform.localScale = _baseScale;
+            transform.rotation = _baseRotation;
+            Renderer.color = Color.white;
+            _isRotating = false;
+
+            switch (special)
             {
-                transform.localScale = Vector3.one;
-                transform.rotation = Quaternion.identity;
-                Renderer.color = Color.white;
-            }
-            else if (special == SpecialType.Bomb)
-            {
-                transform.localScale = Vector3.one * 1.1f;
-                transform.rotation = Quaternion.Euler(0, 0, 45f); // Ромбик
-                Renderer.color = Color.black; // Черный цвет
-            }
-            else if (special == SpecialType.Rainbow)
-            {
-                transform.localScale = Vector3.one * 1.2f;
-                transform.rotation = Quaternion.identity;
-                Renderer.color = new Color(1f, 0.5f, 0f); // Оранжевый
+                case SpecialType.None:
+                    break;
+
+                case SpecialType.Bomb:
+                    transform.localScale = _baseScale * 1.7f;
+                    transform.rotation = Quaternion.Euler(0, 0, 45f);
+                    break;
+
+                case SpecialType.Rainbow:
+                    // Радуга: меньше, но вращается и светится
+                    transform.localScale = _baseScale * 1.7f;
+                    Renderer.color = new Color(1f, 1f, 0.5f); // Легкий золотистый оттенок (свечение)
+                    _isRotating = true;
+                    break;
             }
         }
 
+        private void Update()
+        {
+            // Если это радуга — вращаем её для эффекта
+            if (_isRotating)
+            {
+                transform.Rotate(Vector3.forward, _rotationSpeed * Time.deltaTime);
+            }
+        }
     }
 }
-

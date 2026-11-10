@@ -1,7 +1,5 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
 
 namespace Match3.UI
 {
@@ -12,15 +10,11 @@ namespace Match3.UI
 
         private readonly Stack<FloatingScoreText> _pool = new Stack<FloatingScoreText>(16);
 
-        public void Play(Vector3 worldPosition, int amout)
+        public void Play(Vector3 worldPosition, int amount)
         {
             var item = _pool.Count > 0 ? _pool.Pop() : Instantiate(_prefab, _parent);
-
-            item.Play(worldPosition, amout);
-
-            // возвращаем в пул (он сам выключится через OnComplete)
+            item.Play(worldPosition, amount);
             _pool.Push(item);
         }
     }
 }
-

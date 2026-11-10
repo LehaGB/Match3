@@ -12,7 +12,6 @@ namespace Match3.UI
         [SerializeField] private GameObject _winPanel;
         [SerializeField] private GameObject _losePanel;
         [SerializeField] private TMP_Text _levelText;
-        [SerializeField] private GameObject _shuffleMessageText; 
 
         private void Start()
         {
@@ -23,20 +22,14 @@ namespace Match3.UI
             state.GameOver += OnGameOver;
             state.GameWin += OnGameWin;
 
+            if (LevelManager.Instance != null && LevelManager.Instance.CurrentLevel != null)
+                _levelText.text = $"Уровень {LevelManager.Instance.CurrentLevelIndex + 1}";
+            else
+                _levelText.text = "Уровень ?";
+
+            // Принудительное обновление при старте
             OnScoreChanged(state.Score);
             OnMovesChanged(state.MovesLeft);
-
-            // Подписываемся на перемешивание
-            _boardController.OnShuffleStarted += OnShuffleStarted;
-
-            if (LevelManager.Instance != null && LevelManager.Instance.CurrentLevel != null)
-            {
-                _levelText.text = $"Уровень {LevelManager.Instance.CurrentLevelIndex + 1}";
-            }
-            else
-            {
-                _levelText.text = "Уровень ?";
-            }
         }
 
         private void OnDestroy()
@@ -49,44 +42,11 @@ namespace Match3.UI
                 state.GameOver -= OnGameOver;
                 state.GameWin -= OnGameWin;
             }
-
-            if (_boardController != null)
-                _boardController.OnShuffleStarted -= OnShuffleStarted;
         }
 
-        private void OnScoreChanged(int score)
-        {
-            _scoreText.text = $"Score: {score}";
-        }
-
-        private void OnMovesChanged(int moves)
-        {
-            _movesText.text = $"Moves: {moves}";
-        }
-
-        private void OnGameOver()
-        {
-            if (_losePanel != null) _losePanel.SetActive(true);
-        }
-
-        private void OnGameWin()
-        {
-            if (_winPanel != null) _winPanel.SetActive(true);
-        }
-
-        private void OnShuffleStarted()
-        {
-            if (_shuffleMessageText != null)
-            {
-                _shuffleMessageText.SetActive(true);
-                Invoke(nameof(HideShuffleMessage), 1.5f);
-            }
-        }
-
-        private void HideShuffleMessage()
-        {
-            if (_shuffleMessageText != null)
-                _shuffleMessageText.SetActive(false);
-        }
+        private void OnScoreChanged(int score) => _scoreText.text = $"Score: {score}";
+        private void OnMovesChanged(int moves) => _movesText.text = $"Moves: {moves}";
+        private void OnGameOver() { if (_losePanel != null) _losePanel.SetActive(true); }
+        private void OnGameWin() { if (_winPanel != null) _winPanel.SetActive(true); }
     }
 }

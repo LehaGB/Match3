@@ -2,23 +2,28 @@ using System;
 
 namespace Match3.Core
 {
+    /// <summary>
+    /// Хранит текущее состояние игры (очки, ходы) и уведомляет подписчиков
+    /// о победе или поражении.
+    /// </summary>
     public class GameState
     {
-        public event Action<int> ScoreChanged;
-        public event Action<int> MovesChanged;
-        public event Action GameOver; // Финальное поражение
-        public event Action GameWin;
+        // События, на которые подписывается UI
+        public event Action<int> ScoreChanged;   // Вызывается при изменении очков
+        public event Action<int> MovesChanged;   // Вызывается при изменении ходов
+        public event Action GameOver;            // Вызывается при поражении
+        public event Action GameWin;             // Вызывается при победе
 
-        public int Score { get; private set; }
-        public int MovesLeft { get; private set; }
-        public bool IsGameOver { get; private set; }
-        public bool IsGameWin { get; private set; }
+        public int Score { get; private set; }       // Текущие очки
+        public int MovesLeft { get; private set; }   // Оставшиеся ходы
+        public bool IsGameOver { get; private set; } // Закончилась ли игра поражением
+        public bool IsGameWin { get; private set; }  // Закончилась ли игра победой
 
-        // Счетчик перемешиваний (даем 1 шанс по умолчанию)
-        public int ShufflesLeft { get; private set; }
+        private int _targetScore; // Цель уровня (сколько нужно набрать)
 
-        private int _targetScore;
-
+        /// <summary>
+        /// Инициализирует состояние при старте уровня.
+        /// </summary>
         public void Initialize(int startingMoves, int targetScore)
         {
             Score = 0;
@@ -26,12 +31,15 @@ namespace Match3.Core
             _targetScore = targetScore;
             IsGameOver = false;
             IsGameWin = false;
-            ShufflesLeft = 1; // Даем 1 перемешивание
 
+            // Уведомляем UI о начальных значениях
             ScoreChanged?.Invoke(Score);
             MovesChanged?.Invoke(MovesLeft);
         }
 
+        /// <summary>
+        /// Добавляет очки и проверяет, не достигнута ли цель.
+        /// </summary>
         public void AddScore(int amount)
         {
             if (IsGameOver || IsGameWin || amount <= 0) return;
@@ -39,6 +47,7 @@ namespace Match3.Core
             Score += amount;
             ScoreChanged?.Invoke(Score);
 
+            // Если набрали нужное количество очков — победа
             if (Score >= _targetScore)
             {
                 IsGameWin = true;
@@ -46,6 +55,9 @@ namespace Match3.Core
             }
         }
 
+        /// <summary>
+        /// Тратит один ход. Если ходы закончились — поражение.
+        /// </summary>
         public void ConsumeMove()
         {
             if (IsGameOver || IsGameWin) return;
@@ -53,29 +65,12 @@ namespace Match3.Core
             MovesLeft--;
             MovesChanged?.Invoke(MovesLeft);
 
-            // Если ходы закончились
+            // Если ходы закончились — поражение (без перемешивания)
             if (MovesLeft <= 0)
             {
-                // Проверяем, есть ли шанс на перемешивание
-                if (ShufflesLeft > 0)
-                {
-                    ShufflesLeft--;
-                    MovesLeft = 5; // Даем 5 ходов за перемешивание
-                    MovesChanged?.Invoke(MovesLeft);
-                    // ВАЖНО: Мы не вызываем GameOver, игра продолжается!
-                }
-                else
-                {
-                    // Шансов больше нет — окончательное поражение
-                    IsGameOver = true;
-                    GameOver?.Invoke();
-                }
+                IsGameOver = true;
+                GameOver?.Invoke();
             }
-        }
-        public void ResetGameOver()
-        {
-            // Этот метод тоже больше не нужен, но оставим пустым, чтобы не ломать код
-            IsGameOver = false;
         }
     }
 }

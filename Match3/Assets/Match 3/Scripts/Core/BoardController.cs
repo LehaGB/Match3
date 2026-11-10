@@ -18,8 +18,7 @@ namespace Match3.Core
         [SerializeField] private AudioManager _audio;
         [SerializeField] private CameraShake _cameraShake;
 
-        // Событие для UI (чтобы показать текст перемешивания)
-        public event System.Action OnShuffleStarted;
+       
 
         public GameState State { get; private set; }
 
@@ -44,27 +43,23 @@ namespace Match3.Core
 
         private void Awake()
         {
-            // Берем уровень из LevelManager (который пришел из сцены Menu)
-            if (LevelManager.Instance != null)
-            {
+            if (_levelData == null && LevelManager.Instance != null)
                 _levelData = LevelManager.Instance.CurrentLevel;
-            }
 
             if (_levelData == null)
             {
-                Debug.LogError("LevelData не назначен! Запусти игру через меню.");
+                Debug.LogError("LevelData не назначен!");
                 State = new GameState();
-                State.Initialize(15, 350);
+                State.Initialize(20, 1000);
                 return;
             }
 
+            Debug.Log($"ЗАГРУЗКА: LevelIndex={_levelData.LevelIndex}, Moves={_levelData.StartingsMoves}, Target={_levelData.TargetScore}");
+
             State = new GameState();
             State.Initialize(_levelData.StartingsMoves, _levelData.TargetScore);
-
             State.GameWin += OnGameWinUnlockNextLevel;
             State.MovesChanged += OnMovesChanged;
-
-            Debug.Log($"Загружен уровень {_levelData.LevelIndex}: Ходов = {_levelData.StartingsMoves}, Цель = {_levelData.TargetScore}");
         }
 
         private void Start()
@@ -77,16 +72,7 @@ namespace Match3.Core
             _boardView.SetSwipeListener(this);
         }
 
-        private void OnMovesChanged(int moves)
-        {
-            //// Если ходов стало 5 (после того как было 0), значит, сработало перемешивание
-            //if (moves == 5 && !State.IsGameOver && !State.IsGameWin)
-            //{
-            //    Debug.Log("Активировано перемешивание поля!");
-            //    OnShuffleStarted?.Invoke(); // Сообщаем UI
-            //    StartCoroutine(ShuffleRoutine());
-            //}
-        }
+        private void OnMovesChanged(int moves) { /* Перемешивание отключено */ }
 
         private void OnGameWinUnlockNextLevel()
         {
@@ -94,9 +80,7 @@ namespace Match3.Core
             {
                 int nextIndex = LevelManager.Instance.CurrentLevelIndex + 1;
                 if (nextIndex < LevelManager.Instance.AllLevels.Length)
-                {
                     LevelProgress.UnlockLevel(nextIndex);
-                }
             }
         }
 
@@ -114,67 +98,53 @@ namespace Match3.Core
             BoardCell cell1 = _board.Cells[fromX, fromY];
             BoardCell cell2 = _board.Cells[toX, toY];
 
-            if (cell1.Special != SpecialType.None || cell2.Special != SpecialType.None)
+            bool isSpecialSwipe = cell1.Special != SpecialType.None || cell2.Special != SpecialType.None;
+
+            // 1. Анимация свайпа (для всех случаев)
+            var swapTween = _boardView.AnimateSwap(fromX, fromY, toX, toY);
+            yield return swapTween.WaitForCompletion();
+
+            // 2. Меняем модель
+            _board.Swap(fromX, fromY, toX, toY);
+            _boardView.SwapViews(fromX, fromY, toX, toY);
+
+            if (isSpecialSwipe)
             {
-                var specialSwapTween = _boardView.AnimateSwap(fromX, fromY, toX, toY);
-                yield return specialSwapTween.WaitForCompletion();
-
+                // 3. Если это свайп бонуса — активируем его
                 yield return StartCoroutine(ActivateSpecialRoutine(fromX, fromY, toX, toY));
-
-                _boardView.ResetPosition(fromX, fromY);
-                _boardView.ResetPosition(toX, toY);
-                _boardView.RefreshCell(_board.Cells[fromX, fromY]);
-                _boardView.RefreshCell(_board.Cells[toX, toY]);
-
+                State.ConsumeMove();
                 _isBusy = false;
                 yield break;
             }
 
-            var swapTween = _boardView.AnimateSwap(fromX, fromY, toX, toY);
-            yield return swapTween.WaitForCompletion();
-
-            _board.Swap(fromX, fromY, toX, toY);
-            _boardView.SwapViews(fromX, fromY, toX, toY);
-
+            // 4. Обычный свайп
             MatchFinder.FindMatches(_board, _matchResults, _allMatchedCells);
-
             if (_allMatchedCells.Count == 0)
             {
+                // Откат
                 _board.Swap(fromX, fromY, toX, toY);
                 _boardView.SwapViews(fromX, fromY, toX, toY);
-
                 var revertTween = _boardView.AnimateSwap(toX, toY, fromX, fromY);
                 yield return revertTween.WaitForCompletion();
-
                 _boardView.ResetPosition(fromX, fromY);
                 _boardView.ResetPosition(toX, toY);
                 _boardView.RefreshCell(_board.Cells[fromX, fromY]);
                 _boardView.RefreshCell(_board.Cells[toX, toY]);
-
                 _isBusy = false;
                 yield break;
             }
 
             yield return StartCoroutine(ResolveMatchesRoutine());
             State.ConsumeMove();
-
-            // Если ходы есть, но поле "мертвое" — перемешиваем
-            if (!_board.HasPossibleMoves() && State.MovesLeft > 0 && !State.IsGameOver && !State.IsGameWin)
-            {
-                Debug.Log("Нет возможных ходов! Перемешиваем поле.");
-                OnShuffleStarted?.Invoke(); // Показываем сообщение
-                StartCoroutine(ShuffleRoutine());
-            }
-
             _isBusy = false;
         }
 
         private IEnumerator ResolveMatchesRoutine()
         {
             int cascade = 0;
-
             while (true)
             {
+                // 1. Падение и рефилл
                 bool hasEmpty = false;
                 for (int x = 0; x < _board.Width; x++)
                     for (int y = 0; y < _board.Height; y++)
@@ -189,7 +159,6 @@ namespace Match3.Core
                         yield return fallTween.WaitForCompletion();
                         if (_audio != null) _audio.PlayFall();
                     }
-
                     _board.RefillAndCollectNew(_newCellsBuffer);
                     if (_newCellsBuffer.Count > 0)
                     {
@@ -198,26 +167,45 @@ namespace Match3.Core
                     }
                 }
 
+                // 2. Ищем совпадения
                 MatchFinder.FindMatches(_board, _matchResults, _allMatchedCells);
                 if (_allMatchedCells.Count == 0) break;
 
-                bool hasSpecialInMatch = false;
+                // 3. Проверка на бонусы в линии
+                bool hasSpecial = false;
                 for (int i = 0; i < _allMatchedCells.Count; i++)
-                {
-                    if (_allMatchedCells[i].Special != SpecialType.None)
-                    {
-                        hasSpecialInMatch = true;
-                        break;
-                    }
-                }
+                    if (_allMatchedCells[i].Special != SpecialType.None) { hasSpecial = true; break; }
 
-                if (hasSpecialInMatch)
+                if (hasSpecial)
                 {
-                    yield return StartCoroutine(ActivateSpecialsInMatchRoutine());
+                    List<BoardCell> specials = new List<BoardCell>();
+                    for (int i = 0; i < _allMatchedCells.Count; i++)
+                        if (_allMatchedCells[i].Special != SpecialType.None) specials.Add(_allMatchedCells[i]);
+
+                    for (int i = 0; i < specials.Count; i++) _allMatchedCells.Remove(specials[i]);
+
+                    if (_allMatchedCells.Count > 0)
+                    {
+                        var clearTween = _boardView.AnimateClear(_allMatchedCells);
+                        yield return clearTween.WaitForCompletion();
+                        _board.ClearMatches(_allMatchedCells);
+                    }
+
+                    for (int i = 0; i < specials.Count; i++)
+                    {
+                        if (specials[i].Special == SpecialType.Bomb)
+                            yield return StartCoroutine(ExplodeBombRoutine(specials[i]));
+                        else if (specials[i].Special == SpecialType.Rainbow)
+                            yield return StartCoroutine(ExplodeRainbowRoutine(specials[i], _board.GetRandomType()));
+                    }
+                    ShowScoreAndAddPoints();
+                    cascade++;
+                    if (cascade > 0 && _cameraShake != null) _cameraShake.Shake();
                     continue;
                 }
 
-                // 4. Обрабатываем создание НОВЫХ бонусов (как раньше)
+                // 4. Создание новых бонусов (4+)
+                // 4. Создание новых бонусов (4+)
                 _specialSpawnList.Clear();
                 for (int i = 0; i < _matchResults.Count; i++)
                 {
@@ -225,37 +213,38 @@ namespace Match3.Core
                     if (match.Length >= 4)
                     {
                         BoardCell cell = match.Cells[match.Length / 2];
-                        SpecialType specialToCreate = match.Length >= 5 ? SpecialType.Rainbow : SpecialType.Bomb;
+                        bool already = false;
+                        for (int j = 0; j < _specialSpawnList.Count; j++)
+                            if (_specialSpawnList[j].X == cell.X && _specialSpawnList[j].Y == cell.Y) { already = true; break; }
+                        if (already) continue;
 
-                        _specialSpawnList.Add(new SpecialSpawnInfo { X = cell.X, Y = cell.Y, Type = specialToCreate });
+                        SpecialType type = match.Length >= 5 ? SpecialType.Rainbow : SpecialType.Bomb;
+                        _specialSpawnList.Add(new SpecialSpawnInfo { X = cell.X, Y = cell.Y, Type = type });
                         _allMatchedCells.Remove(cell);
 
-                        // НОВОЕ: Начисляем бонусные очки за создание
-                        int bonusPoints = ScoreRules.GetBonusForSpecialCreation(specialToCreate);
-                        if (bonusPoints > 0)
+                        // Начисляем очки за создание бонуса
+                        int bonus = ScoreRules.GetBonusForSpecialCreation(type);
+                        if (bonus > 0)
                         {
-                            State.AddScore(bonusPoints);
+                            State.AddScore(bonus);
+                            _floatingScorePool?.Play(_boardView.GetCellWorldPosition(cell), bonus);
 
-                            // Показываем всплывающий текст (например, "+20")
-                            if (_floatingScorePool != null)
-                            {
-                                Vector3 pos = _boardView.GetCellWorldPosition(cell);
-                                _floatingScorePool.Play(pos, bonusPoints);
-                            }
+                            // ВОТ ЭТА ПАУЗА: даем игроку увидеть цифру, прежде чем фрукты исчезнут
+                            yield return new WaitForSeconds(0.2f);
                         }
                     }
                 }
 
-                var clearTween = _boardView.AnimateClear(_allMatchedCells);
-                yield return clearTween.WaitForCompletion();
-
+                // 5. Удаляем оставшиеся фрукты
+                var clearTween2 = _boardView.AnimateClear(_allMatchedCells);
+                yield return clearTween2.WaitForCompletion();
                 _board.ClearMatches(_allMatchedCells);
 
+                // 6. Применяем новые бонусы
                 for (int i = 0; i < _specialSpawnList.Count; i++)
                 {
                     var info = _specialSpawnList[i];
                     BoardCell cell = _board.Cells[info.X, info.Y];
-
                     if (cell.Type != ElementType.None)
                     {
                         cell.Special = info.Type;
@@ -265,9 +254,9 @@ namespace Match3.Core
                     }
                 }
 
+                // 7. Очки за обычные фрукты
                 ShowScoreAndAddPoints();
                 if (_audio != null) _audio.PlayMatch();
-
                 cascade++;
                 if (cascade > 0 && _cameraShake != null) _cameraShake.Shake();
             }
@@ -278,12 +267,8 @@ namespace Match3.Core
             if (_allMatchedCells.Count == 0) return;
             int points = ScoreRules.CalculateForMatch(_allMatchedCells.Count);
             State.AddScore(points);
-
             if (_floatingScorePool != null)
-            {
-                Vector3 pos = _boardView.GetCellWorldPosition(_allMatchedCells[0]);
-                _floatingScorePool.Play(pos, points);
-            }
+                _floatingScorePool.Play(_boardView.GetCellWorldPosition(_allMatchedCells[0]), points);
         }
 
         private IEnumerator ActivateSpecialRoutine(int fromX, int fromY, int toX, int toY)
@@ -300,54 +285,40 @@ namespace Match3.Core
             {
                 BoardCell rainbow = cell1.Special == SpecialType.Rainbow ? cell1 : cell2;
                 BoardCell target = cell1.Special == SpecialType.Rainbow ? cell2 : cell1;
-                ElementType targetType = target.Type;
-                yield return StartCoroutine(ExplodeRainbowRoutine(rainbow, targetType));
+                yield return StartCoroutine(ExplodeRainbowRoutine(rainbow, target.Type));
             }
 
             yield return StartCoroutine(ResolveMatchesRoutine());
-            State.ConsumeMove();
         }
 
         private IEnumerator ExplodeBombRoutine(BoardCell bomb)
         {
             _allMatchedCells.Clear();
             _chainReactionSpecials.Clear();
-
             for (int dx = -1; dx <= 1; dx++)
-            {
                 for (int dy = -1; dy <= 1; dy++)
                 {
-                    int nx = bomb.X + dx;
-                    int ny = bomb.Y + dy;
+                    int nx = bomb.X + dx, ny = bomb.Y + dy;
                     if (nx >= 0 && nx < _board.Width && ny >= 0 && ny < _board.Height)
                     {
                         BoardCell target = _board.Cells[nx, ny];
                         if (target.Type != ElementType.None)
                         {
                             _allMatchedCells.Add(target);
-                            if (target.Special != SpecialType.None && target != bomb)
-                                _chainReactionSpecials.Add(target);
+                            if (target.Special != SpecialType.None && target != bomb) _chainReactionSpecials.Add(target);
                         }
                     }
                 }
-            }
-
             var clearTween = _boardView.AnimateClear(_allMatchedCells);
             yield return clearTween.WaitForCompletion();
-
             _board.ClearMatches(_allMatchedCells);
             if (_audio != null) _audio.PlayMatch();
-
-            for (int i = 0; i < _allMatchedCells.Count; i++)
-                _allMatchedCells[i].Special = SpecialType.None;
-
+            for (int i = 0; i < _allMatchedCells.Count; i++) _allMatchedCells[i].Special = SpecialType.None;
             for (int i = 0; i < _chainReactionSpecials.Count; i++)
             {
                 var special = _chainReactionSpecials[i];
-                if (special.Special == SpecialType.Bomb)
-                    yield return StartCoroutine(ExplodeBombRoutine(special));
-                else if (special.Special == SpecialType.Rainbow)
-                    yield return StartCoroutine(ExplodeRainbowRoutine(special, _board.GetRandomType()));
+                if (special.Special == SpecialType.Bomb) yield return StartCoroutine(ExplodeBombRoutine(special));
+                else if (special.Special == SpecialType.Rainbow) yield return StartCoroutine(ExplodeRainbowRoutine(special, _board.GetRandomType()));
             }
         }
 
@@ -355,69 +326,27 @@ namespace Match3.Core
         {
             _allMatchedCells.Clear();
             _chainReactionSpecials.Clear();
-
             for (int x = 0; x < _board.Width; x++)
-            {
                 for (int y = 0; y < _board.Height; y++)
                 {
                     BoardCell target = _board.Cells[x, y];
                     if (target.Type == targetType || target == rainbow)
                     {
                         _allMatchedCells.Add(target);
-                        if (target.Special != SpecialType.None && target != rainbow)
-                            _chainReactionSpecials.Add(target);
+                        if (target.Special != SpecialType.None && target != rainbow) _chainReactionSpecials.Add(target);
                     }
                 }
-            }
-
             var clearTween = _boardView.AnimateClear(_allMatchedCells);
             yield return clearTween.WaitForCompletion();
-
             _board.ClearMatches(_allMatchedCells);
             if (_audio != null) _audio.PlayMatch();
-
-            for (int i = 0; i < _allMatchedCells.Count; i++)
-                _allMatchedCells[i].Special = SpecialType.None;
-
+            for (int i = 0; i < _allMatchedCells.Count; i++) _allMatchedCells[i].Special = SpecialType.None;
             for (int i = 0; i < _chainReactionSpecials.Count; i++)
             {
                 var special = _chainReactionSpecials[i];
-                if (special.Special == SpecialType.Bomb)
-                    yield return StartCoroutine(ExplodeBombRoutine(special));
-                else if (special.Special == SpecialType.Rainbow)
-                    yield return StartCoroutine(ExplodeRainbowRoutine(special, _board.GetRandomType()));
+                if (special.Special == SpecialType.Bomb) yield return StartCoroutine(ExplodeBombRoutine(special));
+                else if (special.Special == SpecialType.Rainbow) yield return StartCoroutine(ExplodeRainbowRoutine(special, _board.GetRandomType()));
             }
-        }
-
-        private IEnumerator ActivateSpecialsInMatchRoutine()
-        {
-            List<BoardCell> specialsToActivate = new List<BoardCell>();
-            for (int i = 0; i < _allMatchedCells.Count; i++)
-            {
-                if (_allMatchedCells[i].Special != SpecialType.None)
-                    specialsToActivate.Add(_allMatchedCells[i]);
-            }
-
-            for (int i = 0; i < specialsToActivate.Count; i++)
-            {
-                var special = specialsToActivate[i];
-                if (special.Special == SpecialType.Bomb)
-                    yield return StartCoroutine(ExplodeBombRoutine(special));
-                else if (special.Special == SpecialType.Rainbow)
-                    yield return StartCoroutine(ExplodeRainbowRoutine(special, _board.GetRandomType()));
-            }
-        }
-
-        private IEnumerator ShuffleRoutine()
-        {
-            _isBusy = true;
-            yield return new WaitForSeconds(0.5f);
-
-            _board = new BoardModel(_board.Width, _board.Height);
-            _boardView.RefreshAll(_board);
-
-            yield return new WaitForSeconds(0.5f);
-            _isBusy = false;
         }
     }
 }

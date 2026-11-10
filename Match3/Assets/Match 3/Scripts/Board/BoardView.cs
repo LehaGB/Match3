@@ -367,21 +367,7 @@ namespace Match3.Board
         public void ForceUpdateSpecial(int x, int y, SpecialType special)
         {
             var view = _views[x, y];
-            view.SetSpecialVisual(special);
-
-            // Если это бомба, ставим черный цвет (или любой другой, который ты хочешь).
-            if(special == SpecialType.Bomb)
-            {
-                view.Renderer.color = Color.black;
-            }
-            else if (special == SpecialType.Rainbow)
-            {
-                view.Renderer.color = new Color(1.0f, 0.5f, 0f); 
-            }
-            else
-            {
-                view.Renderer.color = Color.white;
-            }
+            view.SetSpecialVisual(special); // Только масштаб и поворот
         }
     }
 }
